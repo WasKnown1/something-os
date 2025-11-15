@@ -24,6 +24,14 @@ boot_entry:
     mov ds, ax
     mov es, ax
 
+    mov ah, 0x06
+    mov al, 0x00
+    mov bh, 0x07
+    mov cx, 0x0000
+    mov dh, 24
+    mov dl, 79
+    int 0x10
+
     mov ah, 0x13
     mov al, 0x01
     mov bh, 0x00
@@ -60,28 +68,6 @@ boot_entry:
     hlt
     jmp $
     hlt
-
-print_hex16:
-    pusha
-next_character:
-    mov bx, dx
-    and bx, 0xf000
-    shr bx, 4
-    add bh, 0x30
-    cmp bh, 0x39
-    jg add_7
-print_character_hex:
-   mov al, bh
-   mov ah, 0x0e
-   int 0x10
-   shl dx, 4
-   or dx, dx
-   jnz next_character
-   popa
-   ret
-add_7:
-   add bh, 0x7
-   jmp print_character_hex
 
 dap:
     db 0x10

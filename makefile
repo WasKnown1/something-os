@@ -2,7 +2,7 @@ AS = nasm -f bin
 
 all: boot stage2
 	python helper.py
-	qemu-system-i386 -drive format=raw,file=boot.o
+	qemu-system-i386 -debugcon stdio -drive format=raw,file=boot.o
 
 boot: src/boot.asm
 	$(AS) src/boot.asm -o boot.o
