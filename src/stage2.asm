@@ -16,13 +16,15 @@
     inc byte [line_counter]
 %endmacro
 
+%macro hang 0
+    cli
+    hlt
+    jmp $
+    hlt
+%endmacro
+
 entry:
     println success_message, message_length
-
-    ; enable vesa mode
-    ; mov ax, 0x4f02
-    ; mov bx, 0x4118
-    ; int 0x10
 
     push ds
     pop es
@@ -47,15 +49,34 @@ entry:
     movzx dx, byte [VesaModeInfoBlockBuffer + 25] ; bits_per_pixel
     call print_hex16
 
-    ; qemu magic stdout with port 0xe9 (doesnt work on real machines)
-    mov al, 'c'
-    out 0xe9, al
+    ; enable vesa mode 1280×1024 24-bit
+    ; mov ax, 0x4f02
+    ; mov bx, 0x411b
+    ; int 0x10
 
-hang:
+    ; |-------------------------------------|
+    ; |                                     |
+    ; |      setting up protected mode      |
+    ; |                                     |
+    ; |-------------------------------------|
     cli
-    hlt
-    jmp $
-    hlt
+
+    xor ax, ax
+    mov ds, ax
+    lgdt [gdt_desc]
+
+    ; enable a20 line
+    in al, 0x93
+    or al, 2
+    and al, ~1
+    out 0x92, al
+
+    mov eax, cr0
+    or eax, 0x01
+    mov cr0, eax
+    jmp 0x08:clear_pipe
+
+    hang
 
 get_vesa_info:
 	clc
@@ -154,47 +175,84 @@ ALIGN(4)
     iend
 
 struc VesaModeInfoBlock	;	VesaModeInfoBlock_size = 256 bytes
-	.ModeAttributes		    resw 1
-	.FirstWindowAttributes	resb 1
-	.SecondWindowAttributes	resb 1
-	.WindowGranularity	    resw 1 ;	in KB
-	.WindowSize		        resw 1 ;	in KB
-	.FirstWindowSegment	    resw 1 ;	0 if not supported
-	.SecondWindowSegment	resw 1 ;	0 if not supported
-	.WindowFunctionPtr	    resd 1
-	.BytesPerScanLine	    resw 1
+	.mode_attributes		  resw 1
+	.first_window_attributes  resb 1
+	.second_window_attributes resb 1
+	.window_granularity	      resw 1 ;	in KB
+	.window_size		      resw 1 ;	in KB
+	.first_window_segment	  resw 1 ;	0 if not supported
+	.second_window_segment	  resw 1 ;	0 if not supported
+	.window_function_ptr	  resd 1
+	.bytes_per_scan_line	  resw 1
 
 	; Added in Revision 1.2
-	.Width			        resw 1 ;	in pixels(graphics)/columns(text)
-	.Height			        resw 1 ;	in pixels(graphics)/columns(text)
-	.CharWidth		        resb 1 ;	in pixels
-	.CharHeight		        resb 1 ;	in pixels
-	.PlanesCount		    resb 1
-	.BitsPerPixel		    resb 1
-	.BanksCount		        resb 1
-	.MemoryModel		    resb 1 ;	http://www.ctyme.com/intr/rb-0274.htm#Table82
-	.BankSize		        resb 1 ;	in KB
-	.ImagePagesCount	    resb 1 ;	count - 1
-	.Reserved1		        resb 1 ;	equals 0 in Revision 1.0-2.0, 1 in 3.0
+	.width			          resw 1 ;	in pixels(graphics)/columns(text)
+	.height			          resw 1 ;	in pixels(graphics)/columns(text)
+	.char_width		          resb 1 ;	in pixels
+	.char_height		      resb 1 ;	in pixels
+	.planes_count		      resb 1
+	.bits_per_pixel		      resb 1
+	.banks_count		      resb 1
+	.memory_model		      resb 1 ;	http://www.ctyme.com/intr/rb-0274.htm#Table82
+	.bank_size		          resb 1 ;	in KB
+	.image_pages_count	      resb 1 ;	count - 1
+	.reserved1		          resb 1 ;	equals 0 in Revision 1.0-2.0, 1 in 3.0
 
-	.RedMaskSize		    resb 1
-	.RedFieldPosition	    resb 1
-	.GreenMaskSize		    resb 1
-	.GreenFieldPosition	    resb 1
-	.BlueMaskSize		    resb 1
-	.BlueFieldPosition	    resb 1
-	.ReservedMaskSize	    resb 1
-	.ReservedMaskPosition	resb 1
-	.DirectColorModeInfo	resb 1
+	.red_mask_size		      resb 1
+	.red_field_position	      resb 1
+	.green_mask_size		  resb 1
+	.green_field_position	  resb 1
+	.blue_mask_size		      resb 1
+	.blue_field_position	  resb 1
+	.reserved_mask_size	      resb 1
+	.reserved_mask_position	  resb 1
+	.direct_color_mode_info	  resb 1
 
 	;	Added in Revision 2.0
-	.LFBAddress		        resd 1
-	.OffscreenMemoryOffset	resd 1
-	.OffscreenMemorySize	resw 1   ;	in KB
-	.Reserved2		        resb 206 ;	available in Revision 3.0, but useless for now
+	.lfb_address		      resd 1
+	.off_screen_memory_offset resd 1
+	.off_screen_memory_size	  resw 1   ;	in KB
+	.reserved2		          resb 206 ;	available in Revision 3.0, but useless for now
 endstruc
 
 ALIGN(4)
     VesaModeInfoBlockBuffer: istruc VesaModeInfoBlock
 		times 256 db 0
 	iend
+
+gdt_start:
+    dq 0                    ; Null descriptor
+gdt_code:
+    dw 0xFFFF               ; Limit 0-15
+    dw 0x0000               ; Base 0-15
+    db 0x00                 ; Base 16-23
+    db 10011010b            ; Access: present, ring 0, code, executable, readable
+    db 11001111b            ; Flags: 4KB granularity, 32-bit + Limit 16-19
+    db 0x00                 ; Base 24-31
+gdt_data:
+    dw 0xFFFF               ; Limit 0-15
+    dw 0x0000               ; Base 0-15
+    db 0x00                 ; Base 16-23
+    db 10010010b            ; Access: present, ring 0, data, writable
+    db 11001111b            ; Flags: 4KB granularity, 32-bit + Limit 16-19
+    db 0x00                 ; Base 24-31
+gdt_end:
+gdt_desc:
+    dw gdt_end - gdt_start - 1  ; Size
+    dd gdt_start   
+
+[bits 32]
+clear_pipe:
+    mov ax, 0x10        ; Load data segment selector (0x10 = index 2 in GDT)
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+    mov esp, 0x90000    ; Set up a valid stack pointer
+
+    ; qemu magic stdout with port 0xe9 (doesnt work on real machines)
+    mov al, 'c'
+    out 0xe9, al
+
+    hang
