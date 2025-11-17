@@ -252,7 +252,7 @@ clear_pipe:
     mov esp, 0x90000    ; Set up a valid stack pointer
 
     ; qemu magic stdout with port 0xe9 (doesnt work on real machines)
-    mov al, 'c'
-    out 0xe9, al
+    ; mov al, 'c'
+    ; out 0xe9, al
 
-    hang
+    ; hang
