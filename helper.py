@@ -17,3 +17,5 @@ if __name__ == "__main__":
         
         f.seek(int(os.path.getsize("boot.o")))
         f.write(f3.read())
+        
+    print(f"Final binary size: {os.path.getsize('boot.o')} bytes")

@@ -1,5 +1,5 @@
-unsigned int __attribute__((aligned(4096))) page_directory[1024];
-unsigned int __attribute__((aligned(4096))) page_table_0[1024];
+unsigned int __attribute__((aligned(4096))) page_directory[1024] = {0};
+unsigned int __attribute__((aligned(4096))) page_table_0[1024] = {0};
 
 void load_page_directory(unsigned int *pg_dir) {
     __asm__ ("mov %0, %%cr3" : : "r"(pg_dir));
