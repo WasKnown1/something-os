@@ -1,7 +1,7 @@
 AS = nasm -g -f bin
 CC = gcc -c -m32 -Wall -Werror -nostdlib -ffreestanding -nodefaultlibs -mno-red-zone -fno-pic -fno-pie
 LD = ld -m elf_i386 -T src/x86/linker.ld
-OBJ_RAW = objcopy --set-section-flags .bss=alloc,load,contents --set-section-alignment .bss=4096 -O binary 
+OBJ_RAW = objcopy --set-section-flags .bss=alloc,load,contents --set-section-flags .data=alloc,load,contents -O binary 
 
 X86_C_src = $(shell find "src/x86/" -type f -name "*.c" ! -name "protected_mode.c")
 X86_C_dir = $(shell find "src" -type d)
@@ -23,10 +23,13 @@ protected_mode: src/x86/protected_mode.c
 	@for file in $(X86_C_src); do \
 		basename=$$(basename $$file .c); \
 		echo "Compiling $$file -> build/$$basename.o"; \
-		$(CC) -c $$file -o $$basename.o || exit 1; \
+		$(CC) -c $$file -o $$basename.o $(X86_C_inc) || exit 1; \
 	done
 	$(LD) protected_mode.o paging.o -o protected_mode.elf
 	$(OBJ_RAW) protected_mode.elf protected_mode.bin
+
+run:
+	qemu-system-i386 -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o
 
 clean:
 	mv boot.o src/boot.o 
