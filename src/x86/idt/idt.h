@@ -21,4 +21,6 @@ typedef struct {
 
 #define IDT_MAX_DESCRIPTORS 256
 
+void init_idt();
+
 #endif // IDT_H

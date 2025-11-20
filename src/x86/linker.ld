@@ -6,7 +6,8 @@ SECTIONS
 {
     . = 0x0;
     
-    .text : {
+    .text 0x0 : AT(0x0) {
+        KEEP(*(.entry))
         *(.text)
         *(.text.*)
     }

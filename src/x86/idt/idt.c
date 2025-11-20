@@ -13,48 +13,11 @@ void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags) {
     descriptor->reserved       = 0;
 }
 
-static bool vectors[IDT_MAX_DESCRIPTORS];
-
-__asm__(
-    ".globl isr_stub_table\n\t"
-    "isr_stub_table:\n\t"
-    ".long isr_stub_0\n\t"
-    ".long isr_stub_1\n\t"
-    ".long isr_stub_2\n\t"
-    ".long isr_stub_3\n\t"
-    ".long isr_stub_4\n\t"
-    ".long isr_stub_5\n\t"
-    ".long isr_stub_6\n\t"
-    ".long isr_stub_7\n\t"
-    ".long isr_stub_8\n\t"
-    ".long isr_stub_9\n\t"
-    ".long isr_stub_10\n\t"
-    ".long isr_stub_11\n\t"
-    ".long isr_stub_12\n\t"
-    ".long isr_stub_13\n\t"
-    ".long isr_stub_14\n\t"
-    ".long isr_stub_15\n\t"
-    ".long isr_stub_16\n\t"
-    ".long isr_stub_17\n\t"
-    ".long isr_stub_18\n\t"
-    ".long isr_stub_19\n\t"
-    ".long isr_stub_20\n\t"
-    ".long isr_stub_21\n\t"
-    ".long isr_stub_22\n\t"
-    ".long isr_stub_23\n\t"
-    ".long isr_stub_24\n\t"
-    ".long isr_stub_25\n\t"
-    ".long isr_stub_26\n\t"
-    ".long isr_stub_27\n\t"
-    ".long isr_stub_28\n\t"
-    ".long isr_stub_29\n\t"
-    ".long isr_stub_30\n\t"
-    ".long isr_stub_31\n\t"
-);
+__attribute__((unused)) static bool vectors[IDT_MAX_DESCRIPTORS];
 
 extern void* isr_stub_table[];
 
-void idt_init() {
+void init_idt() {
     idtr.base = (uintptr_t)&idt[0];
     idtr.limit = (uint16_t)sizeof(IDTEntry_t) * IDT_MAX_DESCRIPTORS - 1;
 

@@ -72,7 +72,7 @@ boot_entry:
 dap:
     db 0x10
     db 0x00
-    dw 64
+    dw 127 ; changed to have more memory
     dd 0x00007e00
     dq 0x01
 
