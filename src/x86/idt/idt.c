@@ -1,31 +1,44 @@
 #include <idt.h>
 #include <stdbool.h>
+// #include <string.h>
+#include <stddef.h>
 
 __attribute__((aligned(0x10))) static IDTEntry_t idt[IDT_MAX_DESCRIPTORS];
-static __attribute__((unused)) idtr_t idtr;
+static idtr_t idtr;
 
-void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags) {
+void idt_set_descriptor(uint8_t vector, void *isr, uint8_t flags) {
     IDTEntry_t *descriptor = &idt[vector];
-    descriptor->isr_low        = (uint32_t)isr & 0xFFFF;
-    descriptor->kernel_cs      = 0x08;
-    descriptor->attributes     = flags;
-    descriptor->isr_high       = (uint32_t)isr >> 16;
-    descriptor->reserved       = 0;
+
+    descriptor->base_lo = (uint32_t)isr & 0xFFFF;
+    descriptor->sel = 0x08;
+    descriptor->always0 = 0;
+    descriptor->flags = flags; 
+    descriptor->base_hi = (uint32_t)isr >> 16;
 }
 
-__attribute__((unused)) static bool vectors[IDT_MAX_DESCRIPTORS];
+static bool vectors[IDT_MAX_DESCRIPTORS];
+extern void *isr_stub_table[];
 
-extern void* isr_stub_table[];
+void *memset(void *s, int c, size_t n) {
+    unsigned char *ptr = (unsigned char *)s;
+    unsigned char value = (unsigned char)c;
+    for (size_t i = 0; i < n; i++) {
+        ptr[i] = value;
+    }
+    return s;
+}
 
 void init_idt() {
-    idtr.base = (uintptr_t)&idt[0];
-    idtr.limit = (uint16_t)sizeof(IDTEntry_t) * IDT_MAX_DESCRIPTORS - 1;
+    idtr.limit = (sizeof(IDTEntry_t) * IDT_MAX_DESCRIPTORS) - 1;
+    idtr.base = (uint32_t)&idt[0];
+
+    memset(&idt, 0, sizeof(IDTEntry_t) * IDT_MAX_DESCRIPTORS);
 
     for (uint8_t vector = 0; vector < 32; vector++) {
-        idt_set_descriptor(vector, isr_stub_table[vector], 0x8E);
+        idt_set_descriptor(vector, isr_stub_table[vector], 0x8e);
         vectors[vector] = true;
     }
 
-    __asm__ ("lidt %0" : : "m"(idtr));
-    __asm__ ("sti");
+    __asm__("lidt %0" : : "m"(idtr));
+    __asm__("sti");
 }

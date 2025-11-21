@@ -9,15 +9,12 @@ typedef struct idtr {
 } __attribute__((packed)) idtr_t;
 
 typedef struct {
-	uint16_t isr_low;
-	uint16_t kernel_cs;
-	uint8_t reserved;
-	uint8_t attributes;
-	uint16_t isr_high;
+	uint16_t base_lo;
+	uint16_t sel; /* kernel segment goes here*/
+	uint8_t always0; 
+	uint8_t flags;
+	uint16_t base_hi;
 } __attribute__((packed)) IDTEntry_t;
-
-#define IDT_BASE 0x00
-#define IDT_SIZE 0xff
 
 #define IDT_MAX_DESCRIPTORS 256
 

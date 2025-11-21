@@ -5,7 +5,7 @@ LD = ld -m elf_i386 -T src/x86/linker.ld
 OBJ_RAW = objcopy --set-section-flags .bss=alloc,load,contents --set-section-flags .data=alloc,load,contents -O binary 
 
 X86_C_src = $(shell find "src/x86/" -type f -name "*.c" ! -name "protected_mode.c")
-X86_S_src = $(shell find "src/x86/" -type f -name "*.s")
+X86_ASM_src = $(shell find "src/x86/" -type f -name "*.asm")
 X86_C_dir = $(shell find "src" -type d)
 X86_C_inc = $(addprefix -I,$(X86_C_dir))
 
@@ -27,10 +27,10 @@ protected_mode: src/x86/protected_mode.c
 		echo "Compiling $$file -> $$basename.o"; \
 		$(CC) -c $$file -o $$basename.o $(X86_C_inc) || exit 1; \
 	done
-	@for file in $(X86_S_src); do \
-		basename=$$(basename $$file .s); \
+	@for file in $(X86_ASM_src); do \
+		basename=$$(basename $$file .asm); \
 		echo "Compiling $$file -> $$basename.o"; \
-		$(AS) -c $$file -o $$basename.o || exit 1; \
+		nasm -f elf32 $$file -o $$basename.o || exit 1; \
 	done
 	$(eval X86_O_src = $(shell find "./" -type f -name "*.o" ! -name "boot.o" ! -name "stage2.o" ! -name "protected_mode.o"))
 # the protected_mode.o file always has to be the first file to be linked (idk why but setting entry = 0x0; doesnt do anything so i have to force link it to be the first argument so the entry function is the first function it sees)

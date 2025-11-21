@@ -23,6 +23,10 @@ __attribute__((section(".entry"))) void entry(void)  {
     __asm__("cli\n\t"); // disable interrupts before setting idt
     init_idt();
 
+    // __asm__("mov $1, %eax\n\t"
+    //         "xor %ebx, %ebx\n\t"
+    //         "div %ebx\n\t");
+
     __asm__ (
         "cli\n\t"
         "hlt\n\t");
