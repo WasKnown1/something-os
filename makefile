@@ -9,8 +9,7 @@ X86_ASM_src = $(shell find "src/x86/" -type f -name "*.asm")
 X86_C_dir = $(shell find "src" -type d)
 X86_C_inc = $(addprefix -I,$(X86_C_dir))
 
-all: boot stage2 protected_mode
-	python helper.py
+all: boot stage2 protected_mode python
 	qemu-system-i386 -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o
 
 boot: src/boot.asm
@@ -18,6 +17,9 @@ boot: src/boot.asm
 
 stage2: src/stage2.asm
 	$(NASM) src/stage2.asm -o stage2.o
+
+python:
+	python helper.py
 
 protected_mode: src/x86/protected_mode.c
 	echo $(X86_C_inc)

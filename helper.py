@@ -10,6 +10,8 @@ if __name__ == "__main__":
         
         f.write(f2.read())
         
+        print(f"stage2.o size: {os.path.getsize('stage2.o')}")
+        
         # print(os.path.getsize("boot.o"))
         
         # f.seek(1790)
@@ -19,3 +21,11 @@ if __name__ == "__main__":
         f.write(f3.read())
         
     print(f"Final binary size: {os.path.getsize('boot.o')} bytes")
+    
+    with open("src/x86/linker.ld", "w") as linker, open("src/x86/tmp.ld") as tmp:
+        c_offset = 0x7e00 + int(os.path.getsize("stage2.o")) # c is loaded at address 0x7e00 + the size of the second stage
+                                                             # if not accounted for the data section is not loaded correctly and each section gcc make has the wrong offset
+        linker.write(tmp.read()
+                        .replace(". = #;", f". = {hex(c_offset)};")
+                        .replace(".text # : AT(#) {", f".text {hex(c_offset)} : AT({hex(c_offset)}) {{")
+                    )

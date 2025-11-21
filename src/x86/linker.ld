@@ -4,9 +4,9 @@ ENTRY(entry)
 
 SECTIONS 
 {
-    . = 0x0;
+    . = 0x82f5;
     
-    .text 0x0 : AT(0x0) {
+    .text 0x82f5 : AT(0x82f5) {
         KEEP(*(.entry))
         *(.text)
         *(.text.*)
