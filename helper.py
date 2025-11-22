@@ -26,6 +26,5 @@ if __name__ == "__main__":
         c_offset = 0x7e00 + int(os.path.getsize("stage2.o")) # c is loaded at address 0x7e00 + the size of the second stage
                                                              # if not accounted for the data section is not loaded correctly and each section gcc make has the wrong offset
         linker.write(tmp.read()
-                        .replace(". = #;", f". = {hex(c_offset)};")
-                        .replace(".text # : AT(#) {", f".text {hex(c_offset)} : AT({hex(c_offset)}) {{")
+                        .replace("#", f"{hex(c_offset)}")
                     )

@@ -11,6 +11,8 @@ isr_stub_%+%1:
 %endmacro
 
 interrupt_handler:
+    ; mov eax, dword [esp + 52] ; esp + 52 is the interrupt number
+
     cli
     hlt 
     jmp $

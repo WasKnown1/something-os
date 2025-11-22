@@ -1,6 +1,6 @@
 NASM = nasm -g -f bin
-AS = as --32 -march i386
-CC = gcc -c -m32 -Wall -Werror -nostdlib -ffreestanding -nodefaultlibs -mno-red-zone -fno-pic -fno-pie
+# AS = as --32 -march i386
+CC = gcc -c -m32 -Wall -Werror -nostdlib -ffreestanding -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -D QEMU_DEBUG
 LD = ld -m elf_i386 -T src/x86/linker.ld
 OBJ_RAW = objcopy --set-section-flags .bss=alloc,load,contents --set-section-flags .data=alloc,load,contents -O binary 
 

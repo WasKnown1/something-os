@@ -1,5 +1,7 @@
 #include <paging.h>
 #include <idt.h>
+#include <qemu_log.h>
+#include <log.h>
 
 extern unsigned int __bss_start;
 extern unsigned int __bss_end;
@@ -16,8 +18,10 @@ void clear_bss(void) {
 __attribute__((section(".entry"))) void entry(void)  {
     clear_bss(); // zero out bss if hasnt been already done yet
 
-    __asm__("movb $'c', %al\n\t"
-            "outb %al, $0xe9 \n\t");
+    debug_printf("hello %s, your number is %d and char is %c", "world!", 123, 'X');
+
+    // __asm__("movb $'c', %al\n\t"
+    //         "outb %al, $0xe9 \n\t");
 
     init_paging();
     __asm__("cli\n\t"); // disable interrupts before setting idt
@@ -26,6 +30,7 @@ __attribute__((section(".entry"))) void entry(void)  {
     __asm__("mov $1, %eax\n\t"
             "xor %ebx, %ebx\n\t"
             "div %ebx\n\t");
+    // __asm__("int $0x10\n\t");
 
     __asm__ (
         "cli\n\t"
