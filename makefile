@@ -10,7 +10,7 @@ X86_C_dir = $(shell find "src" -type d)
 X86_C_inc = $(addprefix -I,$(X86_C_dir))
 
 all: boot stage2 protected_mode python
-	qemu-system-i386 -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o
+	qemu-system-x86_64 -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o
 
 boot: src/boot.asm
 	$(NASM) src/boot.asm -o boot.o
@@ -40,7 +40,7 @@ protected_mode: src/x86/protected_mode.c
 	$(OBJ_RAW) protected_mode.elf protected_mode.bin
 
 run:
-	qemu-system-i386 -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o
+	qemu-system-x86_64 -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o
 
 clean:
 	mv boot.o src/boot.o 

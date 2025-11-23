@@ -5,7 +5,7 @@
 #define debug_log_n(str, n) qemu_log_n(str, n)
 #endif
 
-void putnbr(int n) {
+void log_num(int n) {
     char buf[12];
     int i = 0;
     if (n < 0) {
@@ -41,7 +41,7 @@ int debug_printf(const char *format, ...) {
             format++;
             if (*format == 'd') {
                 int num = va_arg(args, int);
-                putnbr(num); 
+                log_num(num); 
             } else if (*format == 's') {
                 char *s = va_arg(args, char *);
                 debug_log(s);

@@ -2,6 +2,8 @@
 #include <idt.h>
 #include <qemu_log.h>
 #include <log.h>
+#include <pae_mode.h>
+#include <long_mode.h>
 
 extern unsigned int __bss_start;
 extern unsigned int __bss_end;
@@ -18,7 +20,18 @@ void clear_bss(void) {
 __attribute__((section(".entry"))) void entry(void)  {
     clear_bss(); // zero out bss if hasnt been already done yet
 
-    debug_printf("hello %s, your number is %d and char is %c", "world!", 123, 'X');
+    debug_printf("hello %s, your number is %d and char is %c\n", "world!", 123, 'X');
+    if (cpu_support_pae()) {
+        debug_printf("cpu supports pae!\n");
+    } else {
+        debug_printf("cpu doesnt support pae :(\n");
+    }
+
+    if (long_mode_support()) {
+        debug_printf("cpu supports long mode!\n");
+    } else {
+        debug_printf("cpu doesnt support long mode :(\n");
+    }
 
     // __asm__("movb $'c', %al\n\t"
     //         "outb %al, $0xe9 \n\t");
