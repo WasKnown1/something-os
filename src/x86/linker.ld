@@ -1,12 +1,13 @@
+/* this is a dummy linker script, dont be fooled though it is used just after replacing the # symbol with the starting address */
 OUTPUT_FORMAT(elf32-i386)
 OUTPUT_ARCH(i386)
 ENTRY(entry)
 
 SECTIONS 
 {
-    . = 0x82f5;
+    . = ##;
     
-    .text 0x82f5 : AT(0x82f5) {
+    .text ## : AT(##) {
         KEEP(*(.entry))
         *(.text)
         *(.text.*)
