@@ -49,6 +49,8 @@ entry:
     movzx dx, byte [VesaModeInfoBlockBuffer + 25] ; bits_per_pixel
     call print_hex16
 
+    call detect_memory
+
     ; enable vesa mode 1280×1024 24-bit
     ; mov ax, 0x4f02
     ; mov bx, 0x411b
@@ -136,6 +138,48 @@ print_hex16:
     popa
     ret
 
+detect_memory:
+    pusha
+    push es
+    xor ax, ax
+    mov es, ax
+
+    mov di, memory_map_address
+    xor ebx, ebx            ; eax = 0 to start
+    xor bp, bp              ; bp = entry count
+    mov edx, 0x534D4150     ; 'SMAP' magic
+    mov eax, 0xE820
+    mov ecx, 24             ; ask for 24 bytes
+    int 0x15
+    
+    jc .failed              ; CF set = not supported
+    cmp eax, 0x534D4150     ; eax should be 'SMAP'
+    jne .failed
+    test ebx, ebx           ; ebx = 0 means 1 entry (unlikely)
+    je .failed
+    jmp .process_entry
+.loop:
+    mov eax, 0xE820
+    mov ecx, 24
+    int 0x15
+    jc .done                ; CF set = end of list
+.process_entry:
+    ; entry  at ES:DI
+    add di, 24
+    inc bp
+    test ebx, ebx
+    jne .loop
+.done:
+    mov [memory_map_entries], bp
+    pop es
+    popa
+
+    clc
+    ret
+.failed:
+    stc
+    ret
+
 success_message: db "Successfully read more sectors!"
 message_length equ ($ - success_message)
 vesa_info_failed: db "Failed to get vesa info"
@@ -185,7 +229,6 @@ struc VesaModeInfoBlock	;	VesaModeInfoBlock_size = 256 bytes
 	.window_function_ptr	  resd 1
 	.bytes_per_scan_line	  resw 1
 
-	; Added in Revision 1.2
 	.width			          resw 1 ;	in pixels(graphics)/columns(text)
 	.height			          resw 1 ;	in pixels(graphics)/columns(text)
 	.char_width		          resb 1 ;	in pixels
@@ -208,7 +251,6 @@ struc VesaModeInfoBlock	;	VesaModeInfoBlock_size = 256 bytes
 	.reserved_mask_position	  resb 1
 	.direct_color_mode_info	  resb 1
 
-	;	Added in Revision 2.0
 	.lfb_address		      resd 1
 	.off_screen_memory_offset resd 1
 	.off_screen_memory_size	  resw 1   ;	in KB
@@ -220,36 +262,48 @@ ALIGN(4)
 		times 256 db 0
 	iend
 
+struc E820Entry
+    .base resq 1
+    .length resq 1
+    .type resd 1
+    .acpi resd 1
+endstruc
+
 gdt_start:
-    dq 0                    ; Null descriptor
+    dq 0
 gdt_code:
-    dw 0xFFFF               ; Limit 0-15
-    dw 0x0000               ; Base 0-15
-    db 0x00                 ; Base 16-23
-    db 10011010b            ; Access: present, ring 0, code, executable, readable
-    db 11001111b            ; Flags: 4KB granularity, 32-bit + Limit 16-19
-    db 0x00                 ; Base 24-31
+    dw 0xFFFF
+    dw 0x0000
+    db 0x00
+    db 10011010b
+    db 11001111b
+    db 0x00
 gdt_data:
-    dw 0xFFFF               ; Limit 0-15
-    dw 0x0000               ; Base 0-15
-    db 0x00                 ; Base 16-23
-    db 10010010b            ; Access: present, ring 0, data, writable
-    db 11001111b            ; Flags: 4KB granularity, 32-bit + Limit 16-19
-    db 0x00                 ; Base 24-31
+    dw 0xFFFF
+    dw 0x0000
+    db 0x00
+    db 10010010b
+    db 11001111b
+    db 0x00
 gdt_end:
 gdt_desc:
-    dw gdt_end - gdt_start - 1  ; Size
-    dd gdt_start   
+    dw gdt_end - gdt_start - 1
+    dd gdt_start
+
+times 1500 - ($ - $$) db 0
+memory_map_entries: dw 0
+memory_map_address:
+times 24*128 db 0 ; space for 128 e820 entries
 
 [bits 32]
 clear_pipe:
-    mov ax, 0x10        ; Load data segment selector (0x10 = index 2 in GDT)
+    mov ax, 0x10
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
     mov ss, ax
-    mov esp, 0x90000    ; Set up a valid stack pointer
+    mov esp, 0x90000
 
     ; qemu magic stdout with port 0xe9 (doesnt work on real machines)
     ; mov al, 'c'

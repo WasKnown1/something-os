@@ -4,6 +4,7 @@
 #include <log.h>
 #include <pae_mode.h>
 #include <long_mode.h>
+#include <ram.h>
 
 extern unsigned int __bss_start;
 extern unsigned int __bss_end;
@@ -32,6 +33,8 @@ __attribute__((section(".entry"))) void entry(void)  {
     } else {
         debug_printf("cpu doesnt support long mode :(\n");
     }
+
+    parse_e820_memory_map();
 
     // __asm__("movb $'c', %al\n\t"
     //         "outb %al, $0xe9 \n\t");

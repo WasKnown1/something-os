@@ -49,6 +49,20 @@ int debug_printf(const char *format, ...) {
                 char c = (char)va_arg(args, int);
                 debug_log_n(&c, 1);
                 count++;
+            } else if (*format == 'x') {
+                unsigned int num = va_arg(args, unsigned int);
+                char buf[9];
+                buf[8] = '\0';
+                for (int i = 7; i >= 0; i--) {
+                    int digit = num & 0xF;
+                    if (digit < 10) {
+                        buf[i] = '0' + digit;
+                    } else {
+                        buf[i] = 'a' + (digit - 10);
+                    }
+                    num >>= 4;
+                }
+                debug_log(buf);
             } else {
                 debug_log_n(format, 1);
                 count++;
