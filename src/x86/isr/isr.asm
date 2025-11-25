@@ -10,8 +10,11 @@ isr_stub_%+%1:
     jmp     common_interrupt_handler
 %endmacro
 
+extern log_num
 interrupt_handler:
     ; mov eax, dword [esp + 52] ; esp + 52 is the interrupt number
+    ; add eax, 'a'
+    ; out 0xE9, al              ; log the interrupt number to port 0xE9 for debugging
 
     cli
     hlt 

@@ -63,6 +63,22 @@ int debug_printf(const char *format, ...) {
                     num >>= 4;
                 }
                 debug_log(buf);
+            } else if (*format == 'p') {
+                uintptr_t ptr = (uintptr_t)va_arg(args, void *);
+                char buf[9];
+                buf[0] = '0';
+                buf[1] = 'x';
+                buf[10] = '\0';
+                for (int i = 9; i >= 2; i--) {
+                    int digit = ptr & 0xF;
+                    if (digit < 10) {
+                        buf[i] = '0' + digit;
+                    } else {
+                        buf[i] = 'a' + (digit - 10);
+                    }
+                    ptr >>= 4;
+                }
+                debug_log(buf);
             } else {
                 debug_log_n(format, 1);
                 count++;

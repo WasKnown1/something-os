@@ -5,6 +5,7 @@
 #include <pae_mode.h>
 #include <long_mode.h>
 #include <ram.h>
+#include <alloc.h>
 
 extern unsigned int __bss_start;
 extern unsigned int __bss_end;
@@ -34,7 +35,11 @@ __attribute__((section(".entry"))) void entry(void)  {
         debug_printf("cpu doesnt support long mode :(\n");
     }
 
-    parse_e820_memory_map();
+    alloc_init();
+    for (uint8_t i = 0; i < ram_memmap_count; i++) {
+        debug_printf("Usable RAM %d: Base: 0x%x Length: 0x%x\n", 
+                     i, (unsigned int)ram_memmap[i].base, (unsigned int)ram_memmap[i].length);
+    }
 
     // __asm__("movb $'c', %al\n\t"
     //         "outb %al, $0xe9 \n\t");
@@ -42,6 +47,17 @@ __attribute__((section(".entry"))) void entry(void)  {
     init_paging();
     __asm__("cli\n\t"); // disable interrupts before setting idt
     init_idt();
+
+    void *ptr = malloc(100);
+    debug_printf("Allocated 100 bytes at %p\n", ptr);
+    *(int*)ptr = 0xDEADBEEF;
+    debug_printf("Wrote 0x%x to allocated memory\n", *(int*)ptr);
+    free(ptr);
+    ptr = malloc(50);
+    debug_printf("Allocated 50 bytes at %p\n", ptr);
+    *(int*)ptr = 0xBEEFBEEF;
+    debug_printf("Wrote 0x%x to allocated memory\n", *(int*)ptr);
+    free(ptr);
 
     __asm__("mov $1, %eax\n\t"
             "xor %ebx, %ebx\n\t"
