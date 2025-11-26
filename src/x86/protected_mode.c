@@ -44,20 +44,24 @@ __attribute__((section(".entry"))) void entry(void)  {
     // __asm__("movb $'c', %al\n\t"
     //         "outb %al, $0xe9 \n\t");
 
+    void *ptr1 = malloc(10);
+    *(int *)ptr1 = 42;
+    debug_printf("Allocated ptr1 at 0x%x with value %d\n", (unsigned int)ptr1, *(int *)ptr1);
+    void *ptr2 = malloc(20);
+    *(int *)ptr2 = 43;
+    debug_printf("Allocated ptr2 at 0x%x with value %d\n", (unsigned int)ptr2, *(int *)ptr2);
+    void *ptr3 = malloc(30);
+    *(int *)ptr3 = 84;
+    debug_printf("Allocated ptr3 at 0x%x with value %d\n", (unsigned int)ptr3, *(int *)ptr3);
+    print_memory_allocations();
+    free(ptr2);
+    print_memory_allocations();
+    ptr2 = malloc(15);
+    print_memory_allocations();
+
     init_paging();
     __asm__("cli\n\t"); // disable interrupts before setting idt
     init_idt();
-
-    void *ptr = malloc(100);
-    debug_printf("Allocated 100 bytes at %p\n", ptr);
-    *(int*)ptr = 0xDEADBEEF;
-    debug_printf("Wrote 0x%x to allocated memory\n", *(int*)ptr);
-    free(ptr);
-    ptr = malloc(50);
-    debug_printf("Allocated 50 bytes at %p\n", ptr);
-    *(int*)ptr = 0xBEEFBEEF;
-    debug_printf("Wrote 0x%x to allocated memory\n", *(int*)ptr);
-    free(ptr);
 
     __asm__("mov $1, %eax\n\t"
             "xor %ebx, %ebx\n\t"
