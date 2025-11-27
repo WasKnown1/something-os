@@ -1,6 +1,6 @@
 #include <idt.h>
 #include <stdbool.h>
-// #include <string.h>
+#include <string.h>
 #include <stddef.h>
 
 __attribute__((aligned(0x10))) static IDTEntry_t idt[IDT_MAX_DESCRIPTORS];
@@ -18,15 +18,6 @@ void idt_set_descriptor(uint8_t vector, void *isr, uint8_t flags) {
 
 static bool vectors[IDT_MAX_DESCRIPTORS];
 extern void *isr_stub_table[];
-
-void *memset(void *s, int c, size_t n) {
-    unsigned char *ptr = (unsigned char *)s;
-    unsigned char value = (unsigned char)c;
-    for (size_t i = 0; i < n; i++) {
-        ptr[i] = value;
-    }
-    return s;
-}
 
 void init_idt() {
     idtr.limit = (sizeof(IDTEntry_t) * IDT_MAX_DESCRIPTORS) - 1;

@@ -1,6 +1,8 @@
 #include <ram.h>
 #include <alloc.h>
 #include <log.h>
+#include <string.h>
+#include <stdio.h>
 
 void alloc_init() {
     parse_e820_memory_map();
@@ -90,18 +92,63 @@ void free(void *ptr) {
     }
 }
 
+void *realloc(void *ptr, uint32_t new_size) {
+    free(ptr);
+    void *new_ptr = malloc(new_size);
+    if (new_ptr != NULL) {
+        return new_ptr;
+    }
+    return NULL;
+}
+
+void *save_realloc(void *ptr, uint32_t old_size, uint32_t new_size) {
+    void* new_ptr = malloc(new_size);
+    if (new_ptr != NULL) {
+        memcpy(new_ptr, ptr, old_size);
+    }
+    free(ptr);
+    return new_ptr;
+}
+
 void print_memory_allocations(void) {
-    debug_printf("|-----------------------------------------------------------|\n");
+    char buf[95] = {0};
+    memset(buf, '-', sizeof(buf) - 1);
+    buf[0] = '|';
+    buf[sizeof(buf) - 3] = '|';
+    buf[sizeof(buf) - 2] = '\n';
+    buf[sizeof(buf) - 1] = '\0';
+    debug_log(buf);
     for (uint8_t i = 0; i < ram_memmap_count; i++) {
         EntryHeader *header = (EntryHeader *)((uint32_t)(ram_memmap[i].base));
-        debug_printf("|Memory Block %d: Used: %d Free: %d First Memory Block: %p|\n", 
+        memset(buf, ' ', sizeof(buf));
+        snprintf(buf, sizeof(buf), "|Memory Block %d: Used: %d Free: %d First Memory Block: %p", 
                      i, header->used_size, header->free_size, header->first_memory_block);
+        for (int j = strlen(buf); j < sizeof(buf); j++)
+            buf[j] = ' ';
+        buf[sizeof(buf) - 3] = '|';        
+        buf[sizeof(buf) - 2] = '\n';
+        buf[sizeof(buf) - 1] = '\0';
+        debug_log(buf);
         MemoryBlock *current = header->first_memory_block;
         while (current != NULL) {
-            debug_printf("|Allocated Block: Size: %d Address: %p Next: %p            |\n", 
+            // debug_printf("|Allocated Block: Size: %d Address: %p Next: %p            |\n", 
+            //              current->size, current->data, current->next);
+            memset(buf, ' ', sizeof(buf));
+            snprintf(buf, sizeof(buf), "|  Allocated Block: Size: %d Address: %p Next: %p", 
                          current->size, current->data, current->next);
+            for (int j = strlen(buf); j < sizeof(buf); j++)
+                buf[j] = ' ';
+            buf[sizeof(buf) - 3] = '|';
+            buf[sizeof(buf) - 2] = '\n';
+            buf[sizeof(buf) - 1] = '\0';
+            debug_log(buf);
             current = current->next;
         }
     }
-    debug_printf("|-----------------------------------------------------------|\n");
+    memset(buf, '-', sizeof(buf) - 1);
+    buf[0] = '|';
+    buf[sizeof(buf) - 3] = '|';
+    buf[sizeof(buf) - 2] = '\n';
+    buf[sizeof(buf) - 1] = '\0';
+    debug_log(buf);
 }

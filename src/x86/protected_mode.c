@@ -44,6 +44,10 @@ __attribute__((section(".entry"))) void entry(void)  {
     // __asm__("movb $'c', %al\n\t"
     //         "outb %al, $0xe9 \n\t");
 
+    init_paging();
+    __asm__("cli\n\t"); // disable interrupts before setting idt
+    init_idt();
+
     void *ptr1 = malloc(10);
     *(int *)ptr1 = 42;
     debug_printf("Allocated ptr1 at 0x%x with value %d\n", (unsigned int)ptr1, *(int *)ptr1);
@@ -58,10 +62,9 @@ __attribute__((section(".entry"))) void entry(void)  {
     print_memory_allocations();
     ptr2 = malloc(15);
     print_memory_allocations();
-
-    init_paging();
-    __asm__("cli\n\t"); // disable interrupts before setting idt
-    init_idt();
+    free(ptr1);
+    free(ptr2);
+    free(ptr3);
 
     __asm__("mov $1, %eax\n\t"
             "xor %ebx, %ebx\n\t"

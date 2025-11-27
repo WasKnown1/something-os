@@ -18,6 +18,8 @@ typedef struct EntryHeader {
 void alloc_init();
 void *malloc(uint32_t size);
 void free(void *ptr);
+void *realloc(void *ptr, uint32_t new_size);
+void *save_realloc(void *ptr, uint32_t old_size, uint32_t new_size);
 void print_memory_allocations(void);
 
 #endif // ALLOC_H
