@@ -51,10 +51,10 @@ void clear_page_tables(void) {
 void link_first_entries_of_each_table(void) {
     uint32_t *pml4 = (uint32_t *)PML4T_ADDR;
     uint32_t *pdpt = (uint32_t *)PDPT_ADDR;
-    uint32_t *pdt = (uint32_t *)PD_ADDR;
+    uint32_t *pdt = (uint32_t *)PDT_ADDR;
 
     pml4[0] = (PDPT_ADDR & PT_ADDR_MASK) | PT_PRESENT | PT_READABLE;
-    pdpt[0] = (PD_ADDR & PT_ADDR_MASK) | PT_PRESENT | PT_READABLE;
+    pdpt[0] = (PDT_ADDR & PT_ADDR_MASK) | PT_PRESENT | PT_READABLE;
     pdt[0] = (PT_ADDR & PT_ADDR_MASK) | PT_PRESENT | PT_READABLE;
 }
 
@@ -68,4 +68,21 @@ void set_entry_in_page_table(void) {
         pt[(i * 2) + 1] = 0;
         entry += PAGE_SIZE;
     }
+}
+
+bool cpu_supports_pml5(void) {
+    uint32_t ecx;
+    __asm__("cpuid\n\t"
+            : "=c"(ecx)
+            : "c"(CPUID_GET_FEATURES),
+              "a"(0)
+            :);
+    return (ecx & CPUID_FEATURE_PML5) != 0;
+}
+
+void enable_level5_paging(void) {
+    uint32_t cr4;
+    __asm__("mov %%cr4, %0" : "=r"(cr4));
+    cr4 |= CR4_LA57;
+    __asm__("mov %0, %%cr4" : : "r"(cr4));
 }

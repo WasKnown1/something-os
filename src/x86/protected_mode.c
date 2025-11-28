@@ -6,6 +6,8 @@
 #include <long_mode.h>
 #include <ram.h>
 #include <alloc.h>
+#include <compatibility_mode.h>
+#include <gdt64.h>
 
 extern unsigned int __bss_start;
 extern unsigned int __bss_end;
@@ -35,6 +37,17 @@ __attribute__((section(".entry"))) void entry(void)  {
         clear_page_tables();
         link_first_entries_of_each_table();
         set_entry_in_page_table();
+        enable_pae_mode();
+
+        if (cpu_supports_pml5()) {
+            debug_printf("cpu supports pml5!\n");
+            // enable_level5_paging(); // this can only be done in long mode
+            enable_compatibility_mode();
+            set_gdt64();
+        } else {
+            debug_printf("cpu doesnt support pml5 :(\n");
+        }
+
     } else if (!cpu_supports_pae()) {
         debug_printf("long mode requires pae support!\n");
     } else {
