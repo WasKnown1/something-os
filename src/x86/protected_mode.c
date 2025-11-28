@@ -44,6 +44,7 @@ __attribute__((section(".entry"))) void entry(void)  {
             // enable_level5_paging(); // this can only be done in long mode
             enable_compatibility_mode();
             set_gdt64();
+            jump_to_long_mode();
         } else {
             debug_printf("cpu doesnt support pml5 :(\n");
         }

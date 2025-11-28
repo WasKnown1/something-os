@@ -33,3 +33,11 @@ bool cpu_supports_long_mode(void) {
     }
     return false;
 }
+
+void jump_to_long_mode(void) {
+    __asm__ (
+        "ljmp $0x8, %[kernel_end]\n\t"
+        :
+        : [kernel_end] "i"(&__kernel_end)
+    );
+}

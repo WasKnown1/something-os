@@ -36,4 +36,6 @@ SECTIONS
         *(.eh_frame)
         *(.note*)
     }
+
+    __kernel_end = .;
 }

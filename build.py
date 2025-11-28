@@ -1,7 +1,7 @@
 import os 
 
 if __name__ == "__main__":
-    with open("boot.o", "r+b") as f, open("stage2.o", "r+b") as f2, open("protected_mode.bin", "r+b") as f3:
+    with open("boot.o", "r+b") as f, open("stage2.o", "r+b") as f2, open("protected_mode.bin", "r+b") as f3, open("long_mode_entry.bin", "r+b") as f4:
         f.seek(510)
         
         f.write(b'\x55\xaa')
@@ -19,5 +19,8 @@ if __name__ == "__main__":
         
         f.seek(int(os.path.getsize("boot.o")))
         f.write(f3.read())
+        
+        f.seek(int(os.path.getsize("boot.o")))
+        f.write(f4.read())
         
     print(f"Final binary size: {os.path.getsize('boot.o')} bytes")
