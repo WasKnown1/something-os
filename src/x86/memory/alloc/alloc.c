@@ -131,8 +131,6 @@ void print_memory_allocations(void) {
         debug_log(buf);
         MemoryBlock *current = header->first_memory_block;
         while (current != NULL) {
-            // debug_printf("|Allocated Block: Size: %d Address: %p Next: %p            |\n", 
-            //              current->size, current->data, current->next);
             memset(buf, ' ', sizeof(buf));
             snprintf(buf, sizeof(buf), "|  Allocated Block: Size: %d Address: %p Next: %p", 
                          current->size, current->data, current->next);

@@ -3,6 +3,6 @@
 
 #include <stdbool.h>
 
-bool cpu_support_pae(void);
+bool cpu_supports_pae(void);
 
 #endif // PAE_MODE_H

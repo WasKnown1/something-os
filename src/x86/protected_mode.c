@@ -21,16 +21,22 @@ void clear_bss(void) {
 
 __attribute__((section(".entry"))) void entry(void)  {
     clear_bss(); // zero out bss if hasnt been already done yet
+    init_paging();
 
-    debug_printf("hello %s, your number is %d and char is %c\n", "world!", 123, 'X');
-    if (cpu_support_pae()) {
+    if (cpu_supports_pae()) {
         debug_printf("cpu supports pae!\n");
     } else {
         debug_printf("cpu doesnt support pae :(\n");
     }
 
-    if (long_mode_support()) {
+    if (cpu_supports_long_mode() && cpu_supports_pae()) {
         debug_printf("cpu supports long mode!\n");
+        disable_paging();
+        clear_page_tables();
+        link_first_entries_of_each_table();
+        set_entry_in_page_table();
+    } else if (!cpu_supports_pae()) {
+        debug_printf("long mode requires pae support!\n");
     } else {
         debug_printf("cpu doesnt support long mode :(\n");
     }
@@ -41,10 +47,6 @@ __attribute__((section(".entry"))) void entry(void)  {
                      i, (unsigned int)ram_memmap[i].base, (unsigned int)ram_memmap[i].length);
     }
 
-    // __asm__("movb $'c', %al\n\t"
-    //         "outb %al, $0xe9 \n\t");
-
-    init_paging();
     __asm__("cli\n\t"); // disable interrupts before setting idt
     init_idt();
 

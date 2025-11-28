@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-bool cpu_support_pae(void) {
+bool cpu_supports_pae(void) {
     uint32_t edx;
     __asm__("mov $1, %%eax\n\t"
             "cpuid\n\t"
