@@ -82,9 +82,17 @@ __attribute__((section(".entry"))) void entry(void)  {
     free(ptr2);
     free(ptr3);
 
-    __asm__("mov $1, %eax\n\t"
-            "xor %ebx, %ebx\n\t"
-            "div %ebx\n\t");
+    disable_paging();
+    init_paging_4mb_identity();
+
+    map_identity_4mb((uint32_t)ram_memmap[0].base + (uint32_t)ram_memmap[0].length, 0x4000000); // map additional 64MB after ram
+    uint32_t *ptr4 = (uint32_t *)((uint32_t)ram_memmap[0].base + (uint32_t)ram_memmap[0].length + 1);
+    *(ptr4) = 0xDEADBEEF; // test writing outside of ram bounds
+    debug_printf("Wrote 0x%x to address 0x%x\n", *(ptr4), (unsigned int)ptr4);
+
+    // __asm__("mov $1, %eax\n\t"
+    //         "xor %ebx, %ebx\n\t"
+    //         "div %ebx\n\t");
     // __asm__("int $0x10\n\t");
 
     __asm__ (

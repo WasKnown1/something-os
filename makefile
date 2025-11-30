@@ -62,6 +62,9 @@ long_mode: protected_mode python_linker64
 run:
 	qemu-system-x86_64 -m 2G -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o
 
+run-i386:
+	qemu-system-i386 -m 2G -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o
+
 clean:
 	mv boot.o src/boot.o 
 	rm *.o 

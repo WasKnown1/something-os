@@ -2,11 +2,14 @@
 #define PAGING_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #define CR0_PG (1 << 31)
 
 void enable_paging(void);
+void init_paging_4mb_identity(void);
 void init_paging(void);
+void map_identity_4mb(uint32_t start, uint32_t length);
 void disable_paging(void);
 
 #define PML4T_ADDR 0x1000
@@ -18,6 +21,7 @@ void disable_paging(void);
 #define PT_ADDR_MASK 0xfffff000u
 #define PT_PRESENT 0x1
 #define PT_READABLE 0x2
+#define PDE_PS 0x80
 
 void clear_page_tables(void);
 void link_first_entries_of_each_table(void);
