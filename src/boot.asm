@@ -57,6 +57,24 @@ boot_entry:
     mov si, dap
     int 0x13
 
+.load_fs: ; have to wait before reading disk again
+    mov cx, 3
+.retry:
+    push cx
+    mov ah, 0x42
+    mov dl, 0x80
+    mov si, dap_fs
+    int 0x13
+    pop cx
+    jnc .done_fs
+
+    xor ah, ah
+    mov dl, 0x80
+    int 0x13
+    
+    loop .retry
+.done_fs:
+
     call $+3 ; get ip (instructiom pointer)
     pop dx
     cmp dx, 0x7c00
@@ -75,5 +93,14 @@ dap:
     dw 127 ; changed to have more memory
     dd 0x00007e00
     dq 0x01
+
+; so for some reason i have to do this to read non ram momory areas...
+dap_fs:
+    db 0x10
+    db 0x00
+    dw 64
+    dw 0x0000 
+    dw 0x1800
+    dq (0x18000 / 512)
 
 times 510 - ($ - $$) db 0

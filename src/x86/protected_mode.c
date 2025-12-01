@@ -8,6 +8,7 @@
 #include <alloc.h>
 #include <compatibility_mode.h>
 #include <gdt64.h>
+#include <mono_fs.h>
 
 extern unsigned int __bss_start;
 extern unsigned int __bss_end;
@@ -85,11 +86,7 @@ __attribute__((section(".entry"))) void entry(void)  {
     disable_paging();
     init_paging_4mb_identity();
 
-    map_identity_4mb((uint32_t)ram_memmap[0].base + (uint32_t)ram_memmap[0].length, 0x4000000); // map additional 64MB after ram
-    uint32_t *ptr4 = (uint32_t *)((uint32_t)ram_memmap[0].base + (uint32_t)ram_memmap[0].length + 1);
-    *(ptr4) = 0xDEADBEEF; // test writing outside of ram bounds
-    debug_printf("Wrote 0x%x to address 0x%x\n", *(ptr4), (unsigned int)ptr4);
-
+    mono_fs_init();
     // __asm__("mov $1, %eax\n\t"
     //         "xor %ebx, %ebx\n\t"
     //         "div %ebx\n\t");

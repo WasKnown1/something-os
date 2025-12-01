@@ -5,7 +5,7 @@ CC64 = gcc -c -m64 -Wall -Werror -nostdlib -ffreestanding -nodefaultlibs -mno-re
 LD = ld -m elf_x86_64
 OBJ_RAW = objcopy --set-section-flags .bss=alloc,load,contents --set-section-flags .data=alloc,load,contents -O binary 
 
-X86_C_SRC = $(shell find "src/x86/" -type f -name "*.c" ! -name "protected_mode.c")  $(shell find "src/cstd/" -type f -name "*.c")
+X86_C_SRC = $(shell find "src/x86/" -type f -name "*.c" ! -name "protected_mode.c")  $(shell find "src/cstd/" -type f -name "*.c") $(shell find "src/x86_64/" -type f -name "*.c")
 X64_C_SRC = $(shell find "src/x64/" -type f -name "*.c" ! -name "long_mode_entry.c")
 X86_ASM_SRC = $(shell find "src/x86/" -type f -name "*.asm")
 X86_O_SRC = $(notdir $(patsubst %.c,%.o,$(X86_C_SRC)) $(patsubst %.asm,%.o,$(X86_ASM_SRC)))
