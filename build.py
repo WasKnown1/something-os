@@ -1,13 +1,58 @@
 import os
 
+""""
+typedef struct FileHeader {
+    bool is_folder;
+    uint32_t size;
+    uint16_t file_name_length; // this includes the full directory
+    // there goes file name
+    // and then goes the file info
+} FileHeader;
+"""
+
+def build_mono_fs():
+    with open("fs.bin", "w+b") as fs:
+        fs.seek(0x00)
+        fs.write("DEED".encode('ascii')) # fs signiture
+        fs.write(b'\x00\x00\x00\x00') # padding for fs start size in the future
+        
+        for root, dirs, files in os.walk('fs/'):
+            # print(f"{files=}, {dirs=}, {root.removeprefix('fs/') == ''}")
+            for file in files:
+                fs.write(b'\x00') # not a dir
+                file_path = os.path.join(root, file)
+                file_size = os.stat(file_path).st_size
+                fs.write(file_size.to_bytes(4, 'little')) # file size
+                print(f"file size = {file_size}")
+                fs.write((len(file_path.removeprefix('fs/')) + 1).to_bytes(2, 'little'))
+                print(f"filename length = {len(file_path.removeprefix('fs/')).to_bytes(2, 'little')}")
+                fs.write(f"{file_path.removeprefix('fs/')}\0".encode('ascii'))
+                with open(file_path, 'rb') as fl:
+                    fs.write(fl.read())
+            
+            for dr in dirs:
+                fs.write(b'\x01')
+                file_path = os.path.join(root, dr)
+                file_size = 0
+                fs.write(file_size.to_bytes(4, 'little')) # file size
+                print(f"folder size = {file_size}")
+                fs.write((len(file_path.removeprefix('fs/')) + 1).to_bytes(2, 'little'))
+                print(f"filename length = {len(file_path.removeprefix('fs/')).to_bytes(2, 'little')}")
+                fs.write(f"{file_path.removeprefix('fs/')}\0".encode('ascii'))
+                
+        fs.seek(0x04)
+        fs.write(os.path.getsize("fs.bin").to_bytes(4, 'little'))
+
 FS_START_ADDRESS = 64 * 512 * 3
 
 if __name__ == "__main__":
+    build_mono_fs()
+    
     with open("boot.o", "r+b") as f,               \
          open("stage2.o", "r+b") as f2,            \
          open("protected_mode.bin", "r+b") as f3,  \
          open("long_mode_entry.bin", "r+b") as f4, \
-         open("fs.zip", "r+b") as f5:
+         open("fs.bin", "r+b") as f5:
         f.seek(510)
         
         f.write(b'\x55\xaa')

@@ -2,28 +2,40 @@
 #include <log.h>
 #include <paging.h>
 #include <ram.h>
+#include <string.h>
+#include <alloc.h>
 
-uint8_t *file_name;   // will be allocated dynamically
-uint8_t *extra_field; // will be allocated dynamically
+void *mono_fs_address;
 
 void mono_fs_init(void) {
-    map_identity_4mb((uint32_t)ram_memmap[0].base + (uint32_t)ram_memmap[0].length, 0x4000000); // map 64MB after ram for mono fs access
+    mono_fs_address = (void *)((uint32_t)ram_memmap[0].base + (uint32_t)ram_memmap[0].length);
+    map_identity_4mb((uint32_t)mono_fs_address, 0x4000000); // map 64MB after ram for mono fs access
 
     debug_printf("Initializing mono filesystem... at %p\n", MONO_FS_START_ADDRESS);
-    ZipHeader *zip_header = (ZipHeader *)(uint32_t)(MONO_FS_START_ADDRESS);
-    if (zip_header->signature[0] != 0x50 ||
-        zip_header->signature[1] != 0x4b ||
-        zip_header->signature[2] != 0x03 ||
-        zip_header->signature[3] != 0x04) {
-        debug_printf("Unable to find mono filesystem signature!\n");
-        char sig[4] = {
-            zip_header->signature[0],
-            zip_header->signature[1],
-            zip_header->signature[2],
-            zip_header->signature[3]
-        };
-        debug_printf("Found signature: %d %d %d %d\n",
-                     sig[0], sig[1], sig[2], sig[3]);
-        return;
+    FsHeader *fs_header = (FsHeader *)MONO_FS_START_ADDRESS;
+    debug_printf("signiture = %d, %d\n", fs_header->signiture, MONO_FS_START_SIGNITURE);
+
+    if (fs_header->signiture == MONO_FS_START_SIGNITURE) {
+        debug_printf("found the filesystem!\n");
+    }
+
+    debug_printf("filesystem start size = %d\n", fs_header->size);
+
+    uint32_t offset = sizeof(FsHeader);
+    
+    while (offset < fs_header->size) {
+        FileHeader *file_header = (FileHeader *)(MONO_FS_START_ADDRESS + offset);
+        
+        debug_printf("file header: is_folder=%d, size=%d, name_len=%d\n", 
+                     file_header->is_folder, 
+                     file_header->size, 
+                     file_header->file_name_length);
+        
+        char *filename_ptr = (char *)file_header + sizeof(FileHeader);
+        char *file_name = malloc(file_header->file_name_length + 1);
+        memcpy(file_name, filename_ptr, file_header->file_name_length);
+        debug_printf("  name: %s\n", file_name);
+        free(file_name);
+        offset += sizeof(FileHeader) + file_header->file_name_length + file_header->size;
     }
 }

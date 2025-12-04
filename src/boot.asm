@@ -58,7 +58,7 @@ boot_entry:
     int 0x13
 
 .load_fs: ; have to wait before reading disk again
-    mov cx, 3
+    mov cx, 6
 .retry:
     push cx
     mov ah, 0x42
