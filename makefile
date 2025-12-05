@@ -65,6 +65,9 @@ run:
 run-i386:
 	qemu-system-i386 -m 2G -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o
 
+build-run-i386: boot stage2 long_mode python_build
+	qemu-system-i386 -m 2G -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o
+
 clean:
 	mv boot.o src/boot.o 
 	rm *.o 

@@ -2,8 +2,9 @@ import os
 
 """"
 typedef struct FileHeader {
-    bool is_folder;
+    uint32_t is_folder;
     uint32_t size;
+    uint32_t padding_from_original_size;
     uint16_t file_name_length; // this includes the full directory
     // there goes file name
     // and then goes the file info
@@ -21,24 +22,44 @@ def build_mono_fs():
             for file in files:
                 fs.write(b'\x00') # not a dir
                 file_path = os.path.join(root, file)
-                file_size = os.stat(file_path).st_size
-                fs.write(file_size.to_bytes(4, 'little')) # file size
+                file_size = os.stat(file_path).st_size + 8
+                # file size
+                fs.write(file_size.to_bytes(4, 'little'))
                 print(f"file size = {file_size}")
-                fs.write((len(file_path.removeprefix('fs/')) + 1).to_bytes(2, 'little'))
+                # padding 0 at the end of file
+                fs.write(int(0).to_bytes(4, 'little'))
+                # file name length
+                fs.write((len(file_path.removeprefix('fs/')) + 1).to_bytes(2, 'little')) 
                 print(f"filename length = {len(file_path.removeprefix('fs/')).to_bytes(2, 'little')}")
+                # file name
                 fs.write(f"{file_path.removeprefix('fs/')}\0".encode('ascii'))
+                # file content
                 with open(file_path, 'rb') as fl:
                     fs.write(fl.read())
+                    
+                # file end header
+                fs.write(file_size.to_bytes(4, 'little'))
+                fs.write("DEED".encode('ascii'))
             
             for dr in dirs:
+                # is infact a folder
                 fs.write(b'\x01')
                 file_path = os.path.join(root, dr)
-                file_size = 0
-                fs.write(file_size.to_bytes(4, 'little')) # file size
+                file_size = 0 + 8
+                # folder size maybe i will change it later to the size of the entire folder idk
+                fs.write(file_size.to_bytes(4, 'little')) 
                 print(f"folder size = {file_size}")
+                # padding at the end of the folder (not really needed since it is a folder)
+                fs.write(int(0).to_bytes(4, 'little'))
+                # folder name length
                 fs.write((len(file_path.removeprefix('fs/')) + 1).to_bytes(2, 'little'))
                 print(f"filename length = {len(file_path.removeprefix('fs/')).to_bytes(2, 'little')}")
+                # folder name
                 fs.write(f"{file_path.removeprefix('fs/')}\0".encode('ascii'))
+                
+                # file end header
+                fs.write(file_size.to_bytes(4, 'little'))
+                fs.write("DEED".encode('ascii'))
                 
         fs.seek(0x04)
         fs.write(os.path.getsize("fs.bin").to_bytes(4, 'little'))

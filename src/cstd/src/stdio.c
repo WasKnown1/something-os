@@ -1,4 +1,12 @@
 #include <stdio.h>
+#include <log.h>
+#include <mono_fs.h>
+
+FILE *fopen(const char *restrict filename, const char *restrict mode) {
+    if (get_file_handle(filename) != NULL)
+        debug_printf("found file!\n");
+    return NULL;
+}
 
 void snprintf(char *buffer, size_t size, const char *format, ...) {
     va_list args;

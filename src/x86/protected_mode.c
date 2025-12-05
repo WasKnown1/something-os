@@ -9,6 +9,7 @@
 #include <compatibility_mode.h>
 #include <gdt64.h>
 #include <mono_fs.h>
+#include <stdio.h>
 
 extern unsigned int __bss_start;
 extern unsigned int __bss_end;
@@ -87,6 +88,9 @@ __attribute__((section(".entry"))) void entry(void)  {
     init_paging_4mb_identity();
 
     mono_fs_init();
+
+    FILE *fd = fopen("testdir/testdirfile.txt", "dasdasd");
+    debug_printf("fd = %d\n", (uint32_t)fd->ptr);
     // __asm__("mov $1, %eax\n\t"
     //         "xor %ebx, %ebx\n\t"
     //         "div %ebx\n\t");
