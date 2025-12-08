@@ -15,8 +15,10 @@ typedef struct {
 #define E820_ENTRY_COUNT_PTR (0x7e00 + 1500)
 
 void parse_e820_memory_map(void);
+uint32_t get_ram_size(void);
 
 extern E820_Entry ram_memmap[20];
 extern uint8_t ram_memmap_count;
+extern uint32_t ram_size;
 
 #endif // RAM_H

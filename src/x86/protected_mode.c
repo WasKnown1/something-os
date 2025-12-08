@@ -90,7 +90,10 @@ __attribute__((section(".entry"))) void entry(void)  {
     mono_fs_init();
 
     FILE *fd = fopen("testdir/testdirfile.txt", "dasdasd");
-    debug_printf("fd = %d\n", (uint32_t)fd->ptr);
+    if (fclose(fd) == 0)
+        debug_printf("successfully closed the file!");
+    else
+        debug_printf("failed to close the file!");
     // __asm__("mov $1, %eax\n\t"
     //         "xor %ebx, %ebx\n\t"
     //         "div %ebx\n\t");

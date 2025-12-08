@@ -3,9 +3,11 @@
 #include <log.h>
 #include <string.h>
 #include <stdio.h>
+#include <paging.h>
 
 void alloc_init() {
     parse_e820_memory_map();
+    get_ram_size();
 
     if (ram_memmap_count == 0) { // no usable RAM found
         return;
@@ -23,7 +25,7 @@ void alloc_init() {
     *((EntryHeader *)((uint32_t)(ram_memmap[0].base))) = first_header;
 }
 
-void *malloc(uint32_t size) {
+void *alloc(uint32_t size) {
     for (uint8_t i = 0; i < ram_memmap_count; i++) {
         EntryHeader *header = (EntryHeader *)((uint32_t)(ram_memmap[i].base));
         if (header->first_memory_block == NULL) {
@@ -68,6 +70,17 @@ void *malloc(uint32_t size) {
         }
     }
     return NULL; // no suitable block found
+}
+
+void *malloc(uint32_t size) {
+    void *ptr = alloc(size);
+    uint32_t start = (uint32_t)ptr & ~0x3FFFFF;  //round down to 4MB
+    uint32_t end = ((uint32_t)ptr + size + 0x3FFFFF) & ~0x3FFFFF;  //round up
+    
+    for (uint32_t addr = start; addr < end; addr += 0x400000)
+        map_identity_4mb(addr, addr);
+    
+    return ptr;
 }
 
 void free(void *ptr) {
@@ -149,4 +162,12 @@ void print_memory_allocations(void) {
     buf[sizeof(buf) - 2] = '\n';
     buf[sizeof(buf) - 1] = '\0';
     debug_log(buf);
+}
+
+uint32_t get_largest_entry_ram_size(void) {
+    uint32_t max_entry_ram_size = 0;
+    for (size_t i = 0; i < ram_memmap_count; i++)
+        if ((uint32_t)ram_memmap[i].length > max_entry_ram_size)
+            max_entry_ram_size = (uint32_t)ram_memmap[i].length;
+    return max_entry_ram_size;
 }

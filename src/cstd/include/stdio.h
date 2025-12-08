@@ -5,9 +5,25 @@
 #include <stddef.h>
 #include <stdint.h>
 
+typedef enum FILEMODE {
+    R,
+    W,
+    A,
+    RP,
+    WP,
+    AP,
+    RB,
+    WB,
+    AB,
+    RBP,
+    WBP,
+    ABP,
+} FILEMODE;
+
 typedef struct FILE {
-    void *ptr;
-    uint8_t flags;
+    void *pfile;
+    void *stream;
+    FILEMODE flags;
 } __attribute__((packed)) FILE;
 
 int fclose(FILE* stream);

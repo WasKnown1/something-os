@@ -21,5 +21,6 @@ void free(void *ptr);
 void *realloc(void *ptr, uint32_t new_size);
 void *save_realloc(void *ptr, uint32_t old_size, uint32_t new_size);
 void print_memory_allocations(void);
+uint32_t get_largest_entry_ram_size(void);
 
 #endif // ALLOC_H

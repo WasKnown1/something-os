@@ -51,19 +51,36 @@ void mono_fs_init(void)
     }
 }
 
-void *get_file_handle(const char *filename) { // maybe i will change this to return a handle in the future like in windows
-    uint32_t offset = sizeof(FsHeader);
+FILE *get_file(const char *filename, const char *restrict mode) { // maybe i will change this to return a handle in the future like in windows
+    uint32_t allocated_file_size = get_ram_size() / 100;
+    if (get_largest_entry_ram_size() > allocated_file_size + sizeof(EntryHeader) + sizeof(MemoryBlock)) {
 
-    while (offset < fs_header->size){
-        FileHeader *file_header = (FileHeader *)(MONO_FS_START_ADDRESS + offset);
+        uint32_t offset = sizeof(FsHeader);
 
-        char *filename_ptr = (char *)file_header + sizeof(FileHeader);
-        char *filename_buffer = malloc(file_header->file_name_length);
-        memcpy(filename_buffer, filename_ptr, file_header->file_name_length);
-        if (strcmp(filename_buffer, filename) == 0)
-            return (void *)file_header;
-        offset += sizeof(FileHeader) + file_header->file_name_length + file_header->size;
-    }
+        while (offset < fs_header->size){
+            FileHeader *file_header = (FileHeader *)(MONO_FS_START_ADDRESS + offset);
+            void *allocated_file = malloc(allocated_file_size);
+
+            char *filename_ptr = (char *)file_header + sizeof(FileHeader);
+            char *filename_buffer = malloc(file_header->file_name_length);
+            memcpy(filename_buffer, filename_ptr, file_header->file_name_length);
+            if (strcmp(filename_buffer, filename) == 0 && file_header->is_folder != 1) {
+                memcpy(allocated_file, (char *)file_header, file_header->size);
+                free(filename_buffer); // forgot to do this and leeked memory (very nice!)
+                FILE *file_ptr = malloc(sizeof(FILE));
+                *file_ptr = (FILE){.pfile = NULL, .stream = allocated_file, .flags = (FILEMODE)mode};
+                return file_ptr;
+            }
+
+            offset += sizeof(FileHeader) + file_header->file_name_length + file_header->size;
+        }
+    } else debug_printf("not enough ram to open file!\n");
 
     return NULL; // file not found
+}
+
+int close_file(FILE* file) {
+    free(file->stream);
+    free(file);
+    return 0;
 }

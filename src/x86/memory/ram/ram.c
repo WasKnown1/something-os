@@ -3,6 +3,7 @@
 
 E820_Entry ram_memmap[20];
 uint8_t ram_memmap_count = 0;
+uint32_t ram_size = 0;
 
 void parse_e820_memory_map(void) {
     E820_Entry *map = (E820_Entry *)E820_MEMMAP_PTR;
@@ -19,4 +20,12 @@ void parse_e820_memory_map(void) {
                          i, (unsigned int)map[i].base, (unsigned int)map[i].length, map[i].type);
         }
     }
+}
+
+uint32_t get_ram_size(void) {
+    ram_size = 0;
+    for (uint8_t entry = 0; entry < sizeof(ram_memmap) / sizeof(E820_Entry); entry++) {
+        ram_size += ram_memmap[entry].length;
+    }
+    return ram_size;
 }

@@ -1,8 +1,9 @@
 #ifndef MONO_FS_H
 #define MONO_FS_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdio.h>
 
 #define MONO_FS_START_ADDRESS (64 * 512 * 3)
 /* the fs is appended right at the end of the disk image                                        *
@@ -10,6 +11,8 @@
  */
 
 #define MONO_FS_START_SIGNITURE 0x44454544 // encoded ascii dead, could be anything honestly
+
+extern void *mono_fs_address;
 
 void mono_fs_init(void);
 
@@ -32,8 +35,7 @@ typedef struct FileEndHeader {
     uint32_t signiture; // also DEED
 } __attribute__((packed)) FileEndHeader;
 
-void *get_file_handle(const char *filename);
-
-extern void *mono_fs_address;
+FILE *get_file(const char *filename, const char *restrict mode);
+int close_file(FILE *file);
 
 #endif // MONO_FS_H
