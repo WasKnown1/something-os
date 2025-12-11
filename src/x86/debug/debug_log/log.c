@@ -1,4 +1,6 @@
 #include <stdarg.h>
+#include <stdint.h>
+#include <stddef.h>
 #ifdef QEMU_DEBUG
 #include <qemu_log.h>
 #define debug_log(str) qemu_log(str)
@@ -91,4 +93,64 @@ int debug_printf(const char *format, ...) {
     }
     va_end(args);
     return count;
+}
+
+void put_hex_nibble(unsigned int x) {
+    x &= 0xF;
+    if (x < 10) qemu_log_char('0' + x);
+    else        qemu_log_char('A' + (x - 10));
+}
+
+void put_hex_byte(unsigned char b) {
+    put_hex_nibble(b >> 4);
+    put_hex_nibble(b);
+}
+
+void put_hex_addr(size_t v) {
+    int digits = sizeof(size_t) == 8 ? 16 : 8;
+    for (int i = digits - 1; i >= 0; i--)
+        put_hex_nibble(v >> (i * 4));
+}
+
+int isprint(int c) {
+
+    if (c >= 0x20 && c <= 0x7E)
+        return 1;
+
+    if (c == -1)
+        return 0;
+    return 0;
+}
+
+void hexdump(const void *ptr, size_t len) {
+    const unsigned char *data = (const unsigned char*)ptr;
+    size_t offset = 0;
+
+    while (offset < len) {
+        put_hex_addr(offset);
+        qemu_log_char(':');
+        qemu_log_char(' ');
+
+        for (int i = 0; i < 16; i++) {
+            if (offset + i < len) {
+                put_hex_byte(data[offset + i]);
+                qemu_log_char(' ');
+            } else {
+                qemu_log_char(' ');
+                qemu_log_char(' ');
+                qemu_log_char(' ');
+            }
+        }
+
+        qemu_log_char(' ');
+        qemu_log_char('|');
+        for (int i = 0; i < 16 && offset + i < len; i++) {
+            unsigned char c = data[offset + i];
+            qemu_log_char(isprint(c) ? c : '.');
+        }
+        qemu_log_char('|');
+        qemu_log_char('\n');
+
+        offset += 16;
+    }
 }

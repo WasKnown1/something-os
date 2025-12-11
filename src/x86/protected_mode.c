@@ -89,11 +89,20 @@ __attribute__((section(".entry"))) void entry(void)  {
 
     mono_fs_init();
 
-    FILE *fd = fopen("testdir/testdirfile.txt", "dasdasd");
-    if (fclose(fd) == 0)
-        debug_printf("successfully closed the file!");
+    FILE* fd = fopen("testdir/testdirfile.txt", "dasdasd");
+    if (fd == NULL)
+        debug_printf("file not found!\n");
     else
-        debug_printf("failed to close the file!");
+        debug_printf("file found!\n");
+    fputc('A', fd);
+    fflush(fd);
+    if (fclose(fd) == 0)
+        debug_printf("successfully closed the file!\n");
+    else
+        debug_printf("failed to close the file!\n");
+    print_mono_fs();
+    hexdump(mono_fs_address, 200);
+
     // __asm__("mov $1, %eax\n\t"
     //         "xor %ebx, %ebx\n\t"
     //         "div %ebx\n\t");

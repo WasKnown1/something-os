@@ -35,7 +35,10 @@ typedef struct FileEndHeader {
     uint32_t signiture; // also DEED
 } __attribute__((packed)) FileEndHeader;
 
-FILE *get_file(const char *filename, const char *restrict mode);
+void print_mono_fs(void);
+FILE *get_file(const char *filename);
+int flush_file(FILE *file);
+int write_char(uint8_t c, FILE *file);
 int close_file(FILE *file);
 
 #endif // MONO_FS_H

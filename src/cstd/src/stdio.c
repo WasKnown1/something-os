@@ -2,14 +2,20 @@
 #include <log.h>
 #include <mono_fs.h>
 
-FILE *fopen(const char *restrict filename, const char *restrict mode) {
-    if (get_file(filename, mode) != NULL)
-        debug_printf("found file!\n");
-    return NULL;
+FILE *fopen(const char *restrict filename, const char *restrict __attribute__((unused)) mode) {
+    return get_file(filename);
 }
 
 int fclose(FILE *stream) {
     return close_file(stream);
+}
+
+int fflush(FILE* stream) {
+    return flush_file(stream);
+}
+
+int fputc(int c, FILE *stream) {
+    return write_char((uint8_t)c, stream);
 }
 
 void snprintf(char *buffer, size_t size, const char *format, ...) {

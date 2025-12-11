@@ -21,8 +21,9 @@ typedef enum FILEMODE {
 } FILEMODE;
 
 typedef struct FILE {
-    void *pfile;
+    void *file_ptr;
     void *stream;
+    uint32_t stream_size;
     FILEMODE flags;
 } __attribute__((packed)) FILE;
 

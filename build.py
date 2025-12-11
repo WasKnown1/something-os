@@ -22,7 +22,7 @@ def build_mono_fs():
             for file in files:
                 fs.write(b'\x00') # not a dir
                 file_path = os.path.join(root, file)
-                file_size = os.stat(file_path).st_size + 8
+                file_size = len(file_path.removeprefix('fs/')) + 1 + 8 + len(open(file_path, "r").read()) + 11
                 # file size
                 fs.write(file_size.to_bytes(4, 'little'))
                 print(f"file size = {file_size}")
@@ -40,12 +40,14 @@ def build_mono_fs():
                 # file end header
                 fs.write(file_size.to_bytes(4, 'little'))
                 fs.write("DEED".encode('ascii'))
+                
+                print(f"sizeof file {file_path}: {file_size}")
             
             for dr in dirs:
                 # is infact a folder
                 fs.write(b'\x01')
                 file_path = os.path.join(root, dr)
-                file_size = 0 + 8
+                file_size = len(file_path.removeprefix('fs/')) + 1 + 8 + 11
                 # folder size maybe i will change it later to the size of the entire folder idk
                 fs.write(file_size.to_bytes(4, 'little')) 
                 print(f"folder size = {file_size}")
@@ -63,6 +65,7 @@ def build_mono_fs():
                 
         fs.seek(0x04)
         fs.write(os.path.getsize("fs.bin").to_bytes(4, 'little'))
+        print(f"sizeof fs.bin: {os.path.getsize('fs.bin')}")
 
 FS_START_ADDRESS = 64 * 512 * 3
 
