@@ -68,6 +68,9 @@ __attribute__((section(".entry"))) void entry(void)  {
 
     __asm__("cli\n\t"); // disable interrupts before setting idt
     init_idt();
+    // mask all irqs for slave/master irq pic
+    outb(0x21, 0xff);
+    outb(0xa1, 0xff);
 
     void *ptr1 = malloc(10);
     *(int *)ptr1 = 42;
@@ -107,13 +110,9 @@ __attribute__((section(".entry"))) void entry(void)  {
     // print_mono_fs();
     // hexdump(mono_fs_address, 300);
 
-    // tss_init(0x9fc00);
-    
+    tss_init(0x9fc00);
+
     __asm__("cli");
-    // disable PIT timer
-    outb(0x43, 0x30); // channel 0, lobyte/hibyte, rate generator
-    outb(0x40, 0x00); // divisor low byte = 0
-    outb(0x40, 0x00); // divisor high byte = 0
 
     uint8_t buf[512] __attribute__((aligned(2)));
     debug_printf("about to call ata_read28\n");
@@ -127,9 +126,15 @@ __attribute__((section(".entry"))) void entry(void)  {
 
     if (ata_read28(0, buf)) {
         debug_printf("read successful!\n");
-    }    
-    hexdump(buf, sizeof(buf));
+    }
+
+    buf[509] = 0x90;
+    ata_write28(0, buf);
+
+    ata_read28(0, buf);
+
     __asm__("sti");
+    hexdump(buf, sizeof(buf));
 
     __asm__ (
         "cli\n\t"
