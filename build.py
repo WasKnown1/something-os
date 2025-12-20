@@ -14,8 +14,8 @@ typedef struct FileHeader {
 def build_mono_fs():
     with open("fs.bin", "w+b") as fs:
         fs.seek(0x00)
-        fs.write("DEED".encode('ascii')) # fs signiture
-        fs.write(b'\x00\x00\x00\x00') # padding for fs start size in the future
+        fs.write("DEED".encode('ascii'))           # fs signiture
+        fs.write(b'\x00\x00\x00\x00')              # padding for fs start size in the future
         
         for root, dirs, files in os.walk('fs/'):
             # print(f"{files=}, {dirs=}, {root.removeprefix('fs/') == ''}")

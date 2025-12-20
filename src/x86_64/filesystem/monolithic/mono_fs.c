@@ -40,6 +40,8 @@ void print_mono_fs(void) {
     }
 }
 
+static bool mono_fs_unpacked = false;
+
 void mono_fs_init(void) {
     mono_fs_address = (void *)((uint32_t)ram_memmap[0].base + (uint32_t)ram_memmap[0].length);
     map_identity_4mb((uint32_t)mono_fs_address, 0x4000000); // map 64MB after ram for mono fs access
@@ -53,11 +55,16 @@ void mono_fs_init(void) {
         return;
     }
 
-    memcpy(mono_fs_address, (char *)MONO_FS_START_ADDRESS, fs_header->size);
+    if (!mono_fs_unpacked)  // only unpack when first boot...
+        memcpy(mono_fs_address, (char *)MONO_FS_START_ADDRESS, fs_header->size);
+    else
+        debug_printf("file system was unpacked!\n");
+    mono_fs_unpacked = true; // true
     fs_header = (FsHeader *)mono_fs_address;
 
     debug_printf("filesystem start size = %d\n", fs_header->size);
     debug_printf("mono_fs at address: %p\n", fs_header);
+    debug_printf("sizeof fpos_t: %d\n", sizeof(fpos_t));
 
     print_mono_fs();
 }
@@ -95,20 +102,40 @@ FILE *get_file(const char *filename) { // maybe i will change this to return a h
     return NULL; // file not found
 }
 
+// FILE* create_file(const char* restrict filename, uint32_t file_size, const FILEMODE mode) {
+//     void *allocated_file = malloc(file_size);
+//     FileHeader file_header = (FileHeader){
+//         .is_folder = 0x01,
+//         .size = file_size,
+//         .padding_from_original_size = 0,
+//         .file_name_length = strlen(filename)
+//     };
+//     memcpy((char *)allocated_file, (void *)&file_header, sizeof(FileHeader));
+//     memcpy((char *)allocated_file + sizeof(FileHeader), filename, strlen(filename));
+//     uint32_t file_content_size = file_size - sizeof(FileHeader) - sizeof(FileEndHeader) - strlen(filename);
+//     memset((char *)allocated_file + sizeof(FileHeader) + strlen(filename), 0, file_content_size);
+//     FileEndHeader file_end_header = (FileEndHeader){
+//         .size = file_size,
+//         .signiture = MONO_FS_START_SIGNITURE
+//     };
+//     memcpy((char *)allocated_file + file_size - sizeof(FileEndHeader), (void *)&file_end_header, sizeof(FileEndHeader));
+//     FILE *file = malloc(sizeof(FILE));
+// }
+
 int flush_file(FILE* file) {
     FileHeader* file_ptr = (FileHeader*)file->file_ptr;
 
     if (file->stream_size > file_ptr->size) {
         memset((char *)file_ptr + sizeof(FileHeader), 0, file_ptr->size - sizeof(FileHeader) - sizeof(FileEndHeader));
-        file_ptr->file_name_length = 0;
         memcpy((char *)mono_fs_address + fs_header->size, file->stream, file->stream_size);
+        file_ptr->file_name_length = 0;
         FileHeader *file_header = (FileHeader *)((char *)mono_fs_address + fs_header->size);
         file_header->size = file->stream_size;
         debug_printf("sizeof stream: %d\n", file->stream_size);
         FileEndHeader file_end_header = (FileEndHeader){
             .size = file->stream_size,
             .signiture = MONO_FS_START_SIGNITURE};
-        memcpy((char *)mono_fs_address + fs_header->size + file->stream_size + sizeof(FileHeader), (char *)&file_end_header, sizeof(FileEndHeader));
+        memcpy((char *)mono_fs_address + fs_header->size + file->stream_size - sizeof(FileEndHeader), (char *)&file_end_header, sizeof(FileEndHeader));
         fs_header->size += file_header->size; 
     }
     return 0;

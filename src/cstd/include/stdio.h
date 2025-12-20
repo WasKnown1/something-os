@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+typedef unsigned long long int fpos_t;
+
 typedef enum FILEMODE {
     R,
     W,
@@ -43,9 +45,9 @@ int putc(int c, FILE *stream);
 int ungetc(int c, FILE *stream);
 size_t fread(void *restrict ptr, size_t size, size_t nmemb, FILE *restrict stream);
 size_t fwrite(const void *restrict ptr, size_t size, size_t nmemb, FILE *restrict stream);
-// int fgetpos(FILE *restrict stream, fpos_t *restrict pos);
+int fgetpos(FILE *restrict stream, fpos_t *restrict pos);
 int fseek(FILE *stream, long int offset, int whence);
-// int fsetpos(FILE *stream, const fpos_t *pos);
+int fsetpos(FILE *stream, const fpos_t *pos);
 long int ftell(FILE *stream);
 void rewind(FILE *stream);
 void clearerr(FILE *stream);

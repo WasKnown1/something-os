@@ -10,6 +10,9 @@
 #include <gdt64.h>
 #include <mono_fs.h>
 #include <stdio.h>
+#include <ata.h>
+#include <tss.h>
+#include <pio.h>
 
 extern unsigned int __bss_start;
 extern unsigned int __bss_end;
@@ -87,26 +90,46 @@ __attribute__((section(".entry"))) void entry(void)  {
     disable_paging();
     init_paging_4mb_identity();
 
-    mono_fs_init();
+    // mono_fs_init();
 
-    FILE* fd = fopen("testdir/testdirfile.txt", "dasdasd");
-    if (fd == NULL)
-        debug_printf("file not found!\n");
-    else
-        debug_printf("file found!\n");
-    fputc('A', fd);
-    fflush(fd);
-    if (fclose(fd) == 0)
-        debug_printf("successfully closed the file!\n");
-    else
-        debug_printf("failed to close the file!\n");
-    print_mono_fs();
-    hexdump(mono_fs_address, 200);
+    // FILE* fd = fopen("testdir/testdirfile.txt", "dasdasd");
+    // if (fd == NULL)
+    //     debug_printf("file not found!\n");
+    // else
+    //     debug_printf("file found!\n");
+    // for (uint16_t i = 0; i < 36; i++)
+    //     fputc('A', fd);
+    // fflush(fd);
+    // if (fclose(fd) == 0)
+    //     debug_printf("successfully closed the file!\n");
+    // else
+    //     debug_printf("failed to close the file!\n");
+    // print_mono_fs();
+    // hexdump(mono_fs_address, 300);
 
-    // __asm__("mov $1, %eax\n\t"
-    //         "xor %ebx, %ebx\n\t"
-    //         "div %ebx\n\t");
-    // __asm__("int $0x10\n\t");
+    // tss_init(0x9fc00);
+    
+    __asm__("cli");
+    // disable PIT timer
+    outb(0x43, 0x30); // channel 0, lobyte/hibyte, rate generator
+    outb(0x40, 0x00); // divisor low byte = 0
+    outb(0x40, 0x00); // divisor high byte = 0
+
+    uint8_t buf[512] __attribute__((aligned(2)));
+    debug_printf("about to call ata_read28\n");
+    debug_printf("  function pointer: 0x%x\n", ata_read28);
+    debug_printf("  stack: 0x%x\n", &buf);
+
+    debug_printf("attempting direct inb(0x1F7)...\n");
+    uint8_t test = inb(0x1F7);
+    debug_printf("  result: 0x%x\n", test);
+    debug_printf("still alive after inb!\n");
+
+    if (ata_read28(0, buf)) {
+        debug_printf("read successful!\n");
+    }    
+    hexdump(buf, sizeof(buf));
+    __asm__("sti");
 
     __asm__ (
         "cli\n\t"

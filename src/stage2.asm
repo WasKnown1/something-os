@@ -285,12 +285,15 @@ gdt_data:
     db 10010010b
     db 11001111b
     db 0x00
+gdt_tss:
+    dq 0
 gdt_end:
 gdt_desc:
     dw gdt_end - gdt_start - 1
     dd gdt_start
 
 times 1500 - ($ - $$) db 0
+gdt: dd gdt_start
 memory_map_entries: dw 0
 memory_map_address:
 times 24*128 db 0 ; space for 128 e820 entries
