@@ -123,6 +123,24 @@ void *save_realloc(void *ptr, uint32_t old_size, uint32_t new_size) {
     return new_ptr;
 }
 
+void *aligned_alloc(size_t alignment, size_t size) {
+    if (alignment & (alignment - 1)) {
+        return NULL; // alignment is not a power of two
+    }
+
+    size_t total_size = size + alignment - 1 + sizeof(void*);
+    void *raw_ptr = malloc(total_size);
+    if (raw_ptr == NULL) {
+        return NULL; // allocation failed
+    }
+
+    uintptr_t raw_addr = (uintptr_t)raw_ptr + sizeof(void*);
+    uintptr_t aligned_addr = (raw_addr + alignment - 1) & ~(alignment - 1);
+    ((void**)aligned_addr)[-1] = raw_ptr; // store the original pointer
+
+    return (void*)aligned_addr;
+}
+
 void print_memory_allocations(void) {
     char buf[95] = {0};
     memset(buf, '-', sizeof(buf) - 1);

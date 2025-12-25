@@ -64,7 +64,7 @@ run:
 	qemu-system-x86_64 -m 2G -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o
 
 run-i386:
-	qemu-system-i386 -m 2G -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o
+	qemu-system-i386 -m 2G -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o -device pci-ohci,id=ohci -device usb-mouse -device usb-kbd
 
 build-run-i386: boot stage2 long_mode python_build
 	qemu-system-i386 -m 2G -debugcon stdio -no-shutdown -no-reboot -d in_asm,int -drive format=raw,file=boot.o

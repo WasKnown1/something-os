@@ -1,6 +1,8 @@
 #ifndef PIO_H
 #define PIO_H
 
+#include <stdint.h>
+
 static inline uint8_t inb(uint16_t port) {
     uint8_t value;
     __asm__ ("inb %w1, %b0" : "=a"(value) : "Nd"(port));
@@ -19,6 +21,16 @@ static inline uint16_t inw(uint16_t port) {
 
 static inline void outw(uint16_t port, uint16_t value) {
     __asm__ ("outw %w0, %w1" : : "a"(value), "Nd"(port));
+}
+
+static inline uint32_t inl(uint16_t port) {
+    uint32_t value;
+    __asm__ ("inl %w1, %0" : "=a"(value) : "Nd"(port));
+    return value;
+}
+
+static inline void outl(uint16_t port, uint32_t value) {
+    __asm__ ("outl %0, %w1" : : "a"(value), "Nd"(port));
 }
 
 #endif // PIO_H

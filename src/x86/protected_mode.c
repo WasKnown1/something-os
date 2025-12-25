@@ -13,6 +13,7 @@
 #include <ata.h>
 #include <tss.h>
 #include <pio.h>
+#include <ohci.h>
 
 extern unsigned int __bss_start;
 extern unsigned int __bss_end;
@@ -132,6 +133,11 @@ __attribute__((section(".entry"))) void entry(void)  {
     ata_write28(0, buf);
 
     ata_read28(0, buf);
+
+    OHCIControllerArray ohci_controllers = pci_scan_for_ohci();
+    OHCIController* controller = dynamic_array_get(ohci_controllers, 0);
+    OHCIRegisters *ohci = init_ohci_controller(controller);
+    detect_ohci_ports(ohci);
 
     __asm__("sti");
     hexdump(buf, sizeof(buf));
