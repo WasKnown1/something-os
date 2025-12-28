@@ -1,4 +1,9 @@
 import os
+import tkinter as tk
+from tkinter import messagebox
+
+root = tk.Tk()
+root.withdraw()
 
 """"
 typedef struct FileHeader {
@@ -97,6 +102,7 @@ if __name__ == "__main__":
         
         f.seek(int(os.path.getsize("boot.o")))
         f.write(f4.read())
+        messagebox.showinfo("Build Info", f"kernel final size before addition of fs: {os.path.getsize('boot.o')} bytes")
         
         f.seek(FS_START_ADDRESS)
         f.write(f5.read()) # write the filesystem image at the specified LBA

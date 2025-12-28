@@ -1,10 +1,10 @@
 NASM = nasm -g -f bin
 # AS = as --32 -march i386
-CC32 = gcc -c -m32 -Wall -Werror -nostdlib -ffreestanding -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -D QEMU_DEBUG
+CC32 = gcc -ggdb -c -m32 -Wall -Werror -nostdlib -ffreestanding -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -D QEMU_DEBUG
 CC64 = gcc -c -m64 -Wall -Werror -nostdlib -ffreestanding -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -D QEMU_DEBUG
 LD32 = ld -m elf_i386
 LD64 = ld -m elf_x86_64 
-OBJ_RAW = objcopy --set-section-flags .bss=alloc,load,contents --set-section-flags .data=alloc,load,contents -O binary 
+OBJ_RAW = objcopy --set-section-flags .bss=alloc,load,contents --set-section-flags .data=alloc,load,contents -O binary
 
 X86_C_SRC = $(shell find "src/x86/" -type f -name "*.c" ! -name "protected_mode.c")  $(shell find "src/cstd/" -type f -name "*.c") $(shell find "src/x86_64/" -type f -name "*.c")
 X64_C_SRC = $(shell find "src/x64/" -type f -name "*.c" ! -name "long_mode_entry.c")
@@ -65,6 +65,9 @@ run:
 
 run-i386:
 	qemu-system-i386 -m 2G -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o -device pci-ohci,id=ohci -device usb-mouse -device usb-kbd
+
+debug-run-i386:
+	qemu-system-i386 -s -S -m 2G -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o -device pci-ohci,id=ohci -device usb-mouse -device usb-kbd
 
 build-run-i386: boot stage2 long_mode python_build
 	qemu-system-i386 -m 2G -debugcon stdio -no-shutdown -no-reboot -d in_asm,int -drive format=raw,file=boot.o

@@ -81,6 +81,26 @@ int debug_printf(const char *format, ...) {
                     ptr >>= 4;
                 }
                 debug_log(buf);
+            } else if (*format == 'u') {
+                unsigned int num = va_arg(args, unsigned int);
+                char buf[11];
+                int i = 0;
+                if (num == 0) {
+                    debug_log("0");
+                    format++;
+                    continue;
+                }
+                while (num > 0) {
+                    buf[i++] = (num % 10) + '0';
+                    num /= 10;
+                }
+                buf[i] = '\0';
+                for (int j = 0; j < i / 2; j++) {
+                    char temp = buf[j];
+                    buf[j] = buf[i - 1 - j];
+                    buf[i - 1 - j] = temp;
+                }
+                debug_log(buf);
             } else {
                 debug_log_n(format, 1);
                 count++;

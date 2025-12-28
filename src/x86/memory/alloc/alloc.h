@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 typedef struct MemoryBlock {
     uint32_t size;
@@ -24,6 +25,7 @@ void *save_realloc(void *ptr, uint32_t old_size, uint32_t new_size);
 void *aligned_alloc(size_t alignment, size_t size);
 void print_memory_allocations(void);
 uint32_t get_largest_entry_ram_size(void);
+bool is_pointing_to_allocated_memory(void *ptr);
 
 #define DynamicArray(type) struct { \
     type *data; \

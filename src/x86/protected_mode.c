@@ -138,6 +138,31 @@ __attribute__((section(".entry"))) void entry(void)  {
     OHCIController* controller = dynamic_array_get(ohci_controllers, 0);
     OHCIRegisters *ohci = init_ohci_controller(controller);
     detect_ohci_ports(ohci);
+    ohci_port_reset(ohci, 0);
+    ohci_port_reset(ohci, 1);    
+    debug_printf("resetting OHCI ports...\n");
+    ohci->control |= OHCI_CTRL_CLE;
+    OHCIHCCA* hcca = init_ohci_scheduling(controller);  
+    (void)hcca;
+    ohci->control_head_ed = 0; // just to test
+    ohci->bulk_head_ed = 0;    // just to test
+    uint32_t ctrl = ohci->control;
+    ctrl &= ~0xC0;    // Clear HCFS
+    ctrl |= (2 << 6); // HCFS = OPERATIONAL
+    ctrl |= (1 << 4); // ControlListEnable
+    ctrl |= (1 << 5); // BulkListEnable
+
+    ohci->control = ctrl;
+    uint32_t ctrl2 = ohci->control;
+    debug_printf("HC control = %x\n", ctrl2);
+    uint16_t last = hcca->frame_number;
+    for (volatile int i = 0; i < 1000000; i++); // wait a bit
+    uint16_t now = hcca->frame_number;
+
+    debug_printf("frame: %u -> %u\n", last, now);
+
+    uint32_t is = ohci->intr_status;
+    debug_printf("INT STATUS = %x\n", is);
 
     __asm__("sti");
     hexdump(buf, sizeof(buf));

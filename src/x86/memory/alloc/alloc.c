@@ -189,3 +189,17 @@ uint32_t get_largest_entry_ram_size(void) {
             max_entry_ram_size = (uint32_t)ram_memmap[i].length;
     return max_entry_ram_size;
 }
+
+bool is_pointing_to_allocated_memory(void *ptr) {
+    for (uint8_t i = 0; i < ram_memmap_count; i++) {
+        EntryHeader *header = (EntryHeader *)((uint32_t)(ram_memmap[i].base));
+        MemoryBlock *current = header->first_memory_block;
+        while (current != NULL) {
+            if (current->data == ptr) {
+                return true;
+            }
+            current = current->next;
+        }
+    }
+    return false;
+}
