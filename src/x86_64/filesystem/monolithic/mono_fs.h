@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdio.h>
+#include <smthng_os.h>
 
 #define MONO_FS_START_ADDRESS (64 * 512 * 3)
 /* the fs is appended right at the end of the disk image                                        *
@@ -11,14 +12,13 @@
  */
 
 #define MONO_FS_START_SIGNITURE 0x44454544 // encoded ascii dead, could be anything honestly
+#define LBA_SIZE 512
 
-extern void *mono_fs_address;
-
-void mono_fs_init(void);
+typedef Pair(u16, u32) DiskAddress;
+// #define ERROR_DISK_ADDRESS (DiskAddress){.arg1 = 0, .arg2 = 0};
 
 typedef struct FsHeader {
     uint32_t signiture;
-    uint32_t size;
 } __attribute__((packed)) FsHeader;
 
 typedef struct FileHeader {
@@ -30,12 +30,8 @@ typedef struct FileHeader {
     // and then goes the file info
 } __attribute__((packed)) FileHeader;
 
-typedef struct FileEndHeader {
-    uint32_t size;
-    uint32_t signiture; // also DEED
-} __attribute__((packed)) FileEndHeader;
-
-void print_mono_fs(void);
+u0 print_mono_fs(u0);
+u0 mono_fs_init(u0);
 FILE *get_file(const char *filename);
 int flush_file(FILE *file);
 int write_char(uint8_t c, FILE *file);

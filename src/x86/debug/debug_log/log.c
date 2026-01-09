@@ -33,7 +33,7 @@ void log_num(int n) {
     debug_log(buf);
 }
 
-int debug_printf(const char *format, ...) {
+void debug_printf(const char *format, ...) {
     va_list args;
     va_start(args, format);
     int count = 0;
@@ -112,7 +112,6 @@ int debug_printf(const char *format, ...) {
         format++;
     }
     va_end(args);
-    return count;
 }
 
 void put_hex_nibble(unsigned int x) {

@@ -10,7 +10,7 @@
 #endif
 
 void log_num(int n);
-int debug_printf(const char *format, ...);
+void debug_printf(const char *format, ...);
 void hexdump(const void *ptr, size_t len);
 
 #endif // LOG_H

@@ -1,104 +1,87 @@
 #include <mono_fs.h>
+#include <qemu_log.h>
 #include <log.h>
-#include <paging.h>
-#include <ram.h>
 #include <string.h>
 #include <alloc.h>
+#include <ata.h>
 
-void *mono_fs_address;
-FsHeader *fs_header;
+static DiskAddress *dumb_file_search(const i8* file_name) {
+    u32 fs_offset = sizeof(FsHeader);
+    u16 lba = MONO_FS_START_ADDRESS / LBA_SIZE;
+    u8 sector[LBA_SIZE] = {0};
+    ata_read28(lba, sector);
 
-void print_mono_fs(void) {
-    debug_printf("fs_header->size: %d\n", fs_header->size);
-    uint32_t offset = sizeof(FsHeader);
-    
-    while (offset < fs_header->size) {
-        FileHeader *file_header = (FileHeader *)(mono_fs_address + offset);
-        debug_printf("file_header->size: %d\n", file_header->size);
+    while (true) {
+        FileHeader *file_header = (FileHeader *)(sector + (fs_offset % LBA_SIZE));
 
-        if (file_header->is_folder != 1 && file_header->file_name_length > 0) {
-            debug_printf("file header: is_folder=%d, size=%d, name_len=%d\n",
-                         file_header->is_folder,
-                         file_header->size,
-                         file_header->file_name_length - 1);
+        u16 file_name_length = file_header->file_name_length;
+        i8 *file_name_buffer = malloc(file_name_length);
+        memcpy(file_name_buffer, sector + (fs_offset % LBA_SIZE) + sizeof(FileHeader), file_name_length);
+        file_name_buffer[file_header->file_name_length] = '\0'; // no need -1 since we are setting the last byte
 
-            char *filename_ptr = (char *)file_header + sizeof(FileHeader);
-            debug_log("file name: ");
-            debug_log_n(filename_ptr, file_header->file_name_length);
-            debug_log("\n");
+        if (strcmp(file_name_buffer, file_name) == 0) {
+            free(file_name_buffer);
+            DiskAddress *disk_address = malloc(sizeof(DiskAddress));
+            *disk_address = (DiskAddress){.arg1 = lba, .arg2 = fs_offset % LBA_SIZE};
+            return disk_address;
+        }
 
-            char *file_content_ptr = (char *)file_header + sizeof(FileHeader) + file_header->file_name_length;
-            debug_log("file content: ");
-            debug_log_n(file_content_ptr, file_header->size - sizeof(FileEndHeader) - sizeof(FileHeader) - file_header->file_name_length);
-            debug_log("\n");
-
-            debug_printf("sizeof file %s: %d\n", filename_ptr, file_header->size);
-        } else if (file_header->is_folder == 1)
-            debug_printf("found folder!\n");
-        offset += file_header->size;
-        debug_printf("offset: %d\n", offset);
+        u32 file_size = file_header->size;
+        fs_offset += file_size;
+        lba += file_size / LBA_SIZE;
+        ata_read28(lba, sector);
+        free(file_name_buffer);
     }
+
+    return NULL;
 }
 
-static bool mono_fs_unpacked = false;
+u0 print_mono_fs(u0) {
+    DiskAddress *fs_structrue = dumb_file_search("fs_structure.json");
 
-void mono_fs_init(void) {
-    mono_fs_address = (void *)((uint32_t)ram_memmap[0].base + (uint32_t)ram_memmap[0].length);
-    map_identity_4mb((uint32_t)mono_fs_address, 0x4000000); // map 64MB after ram for mono fs access
+    if (fs_structrue == NULL)
+        panic(debug_printf, "enable to find fs_structure.json!\n");
 
-    debug_printf("Initializing mono filesystem... at %p\n", MONO_FS_START_ADDRESS);
-    fs_header = (FsHeader *)MONO_FS_START_ADDRESS;
-    debug_printf("signiture = %d, %d\n", fs_header->signiture, MONO_FS_START_SIGNITURE);
+    u8 sector[LBA_SIZE] = {0};
+    ata_read28(fs_structrue->arg1, sector);
+
+    FileHeader *file_header = (FileHeader *)(sector + fs_structrue->arg2);
+    u32 total_bytes = file_header->size + fs_structrue->arg2;
+    u32 lbas = (total_bytes + LBA_SIZE - 1) / LBA_SIZE;
+
+    u8 *buffer = malloc(lbas * LBA_SIZE);
+    ata_read_lbas(fs_structrue->arg1, lbas, buffer);
+
+    u8 *file_base = buffer + fs_structrue->arg2;
+    u8 *file_data = file_base + sizeof(FileHeader) + file_header->file_name_length;
+
+    u32 file_data_size = file_header->size - sizeof(FileHeader) - file_header->file_name_length;
+    qemu_log_n((i8 *)file_data, file_data_size);
+    debug_printf("\n");
+
+    free(buffer);
+}
+
+u0 mono_fs_init(u0) {
+    u8* read_fs_header_sector = malloc(LBA_SIZE);
+    ata_read_lbas(MONO_FS_START_ADDRESS / LBA_SIZE, 1, read_fs_header_sector);
+    FsHeader* fs_header = malloc(sizeof(FsHeader));
+    memcpy((void*)fs_header, (void*)read_fs_header_sector, sizeof(FsHeader));
+    free(read_fs_header_sector);
 
     if (fs_header->signiture != MONO_FS_START_SIGNITURE) {
-        debug_printf("didnt find the filesystem!\n");
+        debug_printf("mono fs signiture invalid! got 0x%x expected 0x%x\n", fs_header->signiture, MONO_FS_START_SIGNITURE);
+        free(fs_header);
         return;
     }
 
-    if (!mono_fs_unpacked)  // only unpack when first boot...
-        memcpy(mono_fs_address, (char *)MONO_FS_START_ADDRESS, fs_header->size);
-    else
-        debug_printf("file system was unpacked!\n");
-    mono_fs_unpacked = true; // true
-    fs_header = (FsHeader *)mono_fs_address;
+    debug_printf("mono fs signiture valid! signiture: %u bytes\n", fs_header->signiture);
 
-    debug_printf("filesystem start size = %d\n", fs_header->size);
-    debug_printf("mono_fs at address: %p\n", fs_header);
-    debug_printf("sizeof fpos_t: %d\n", sizeof(fpos_t));
-
-    print_mono_fs();
+    debug_printf("found testdir/testdirfile.txt = %p\n", dumb_file_search("testdir/testdirfile.txt"));
 }
 
 FILE *get_file(const char *filename) { // maybe i will change this to return a handle in the future like in windows
-    uint32_t allocated_file_size = get_ram_size() / 100;
-    if (get_largest_entry_ram_size() > allocated_file_size + sizeof(EntryHeader) + sizeof(MemoryBlock)) {
-
-        uint32_t offset = sizeof(FsHeader);
-
-        while (offset < fs_header->size){
-            FileHeader *file_header = (FileHeader *)(mono_fs_address + offset);
-            void *allocated_file = malloc(allocated_file_size);
-
-            char *filename_ptr = (char *)file_header + sizeof(FileHeader);
-            char *filename_buffer = malloc(file_header->file_name_length);
-            memcpy(filename_buffer, filename_ptr, file_header->file_name_length);
-            if (strcmp(filename_buffer, filename) == 0 && 
-                file_header->is_folder != 1 &&
-                file_header->file_name_length > 0) {
-                memcpy(allocated_file, (char *)file_header, file_header->size);
-                free(filename_buffer); // forgot to do this and leeked memory (very nice!)
-                FILE *file_ptr = malloc(sizeof(FILE));
-                *file_ptr = (FILE){.file_ptr = mono_fs_address + offset,
-                                   .stream = allocated_file,
-                                   .stream_size = file_header->size};
-                debug_printf("file at pointer: %p\n", mono_fs_address + offset);
-                return file_ptr;
-            }
-
-            offset += file_header->size;
-        }
-    } else debug_printf("not enough ram to open file!\n");
-
+    (void)filename;
     return NULL; // file not found
 }
 
@@ -123,27 +106,13 @@ FILE *get_file(const char *filename) { // maybe i will change this to return a h
 // }
 
 int flush_file(FILE* file) {
-    FileHeader* file_ptr = (FileHeader*)file->file_ptr;
-
-    if (file->stream_size > file_ptr->size) {
-        memset((char *)file_ptr + sizeof(FileHeader), 0, file_ptr->size - sizeof(FileHeader) - sizeof(FileEndHeader));
-        memcpy((char *)mono_fs_address + fs_header->size, file->stream, file->stream_size);
-        file_ptr->file_name_length = 0;
-        FileHeader *file_header = (FileHeader *)((char *)mono_fs_address + fs_header->size);
-        file_header->size = file->stream_size;
-        debug_printf("sizeof stream: %d\n", file->stream_size);
-        FileEndHeader file_end_header = (FileEndHeader){
-            .size = file->stream_size,
-            .signiture = MONO_FS_START_SIGNITURE};
-        memcpy((char *)mono_fs_address + fs_header->size + file->stream_size - sizeof(FileEndHeader), (char *)&file_end_header, sizeof(FileEndHeader));
-        fs_header->size += file_header->size; 
-    }
+    (void)file;
     return 0;
 }
 
 int write_char(uint8_t c, FILE *file) {
-    ((uint8_t *)file->stream)[file->stream_size - sizeof(FileEndHeader)] = c;
-    file->stream_size++;
+    (void)c;
+    (void)file;
     return 0;
 }
 

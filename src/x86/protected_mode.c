@@ -13,7 +13,6 @@
 #include <ata.h>
 #include <tss.h>
 #include <pio.h>
-#include <ohci.h>
 
 extern unsigned int __bss_start;
 extern unsigned int __bss_end;
@@ -94,78 +93,14 @@ __attribute__((section(".entry"))) void entry(void)  {
     disable_paging();
     init_paging_4mb_identity();
 
-    // mono_fs_init();
-
-    // FILE* fd = fopen("testdir/testdirfile.txt", "dasdasd");
-    // if (fd == NULL)
-    //     debug_printf("file not found!\n");
-    // else
-    //     debug_printf("file found!\n");
-    // for (uint16_t i = 0; i < 36; i++)
-    //     fputc('A', fd);
-    // fflush(fd);
-    // if (fclose(fd) == 0)
-    //     debug_printf("successfully closed the file!\n");
-    // else
-    //     debug_printf("failed to close the file!\n");
-    // print_mono_fs();
-    // hexdump(mono_fs_address, 300);
-
     tss_init(0x9fc00);
 
     __asm__("cli");
 
-    uint8_t buf[512] __attribute__((aligned(2)));
-    debug_printf("about to call ata_read28\n");
-    debug_printf("  function pointer: 0x%x\n", ata_read28);
-    debug_printf("  stack: 0x%x\n", &buf);
-
-    debug_printf("attempting direct inb(0x1F7)...\n");
-    uint8_t test = inb(0x1F7);
-    debug_printf("  result: 0x%x\n", test);
-    debug_printf("still alive after inb!\n");
-
-    if (ata_read28(0, buf)) {
-        debug_printf("read successful!\n");
-    }
-
-    buf[509] = 0x90;
-    ata_write28(0, buf);
-
-    ata_read28(0, buf);
-
-    OHCIControllerArray ohci_controllers = pci_scan_for_ohci();
-    OHCIController* controller = dynamic_array_get(ohci_controllers, 0);
-    OHCIRegisters *ohci = init_ohci_controller(controller);
-    detect_ohci_ports(ohci);
-    ohci_port_reset(ohci, 0);
-    ohci_port_reset(ohci, 1);    
-    debug_printf("resetting OHCI ports...\n");
-    ohci->control |= OHCI_CTRL_CLE;
-    OHCIHCCA* hcca = init_ohci_scheduling(controller);  
-    (void)hcca;
-    ohci->control_head_ed = 0; // just to test
-    ohci->bulk_head_ed = 0;    // just to test
-    uint32_t ctrl = ohci->control;
-    ctrl &= ~0xC0;    // Clear HCFS
-    ctrl |= (2 << 6); // HCFS = OPERATIONAL
-    ctrl |= (1 << 4); // ControlListEnable
-    ctrl |= (1 << 5); // BulkListEnable
-
-    ohci->control = ctrl;
-    uint32_t ctrl2 = ohci->control;
-    debug_printf("HC control = %x\n", ctrl2);
-    uint16_t last = hcca->frame_number;
-    for (volatile int i = 0; i < 1000000; i++); // wait a bit
-    uint16_t now = hcca->frame_number;
-
-    debug_printf("frame: %u -> %u\n", last, now);
-
-    uint32_t is = ohci->intr_status;
-    debug_printf("INT STATUS = %x\n", is);
+    mono_fs_init();
+    print_mono_fs();
 
     __asm__("sti");
-    hexdump(buf, sizeof(buf));
 
     __asm__ (
         "cli\n\t"

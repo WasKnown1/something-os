@@ -1,76 +1,84 @@
 import os
-import tkinter as tk
-from tkinter import messagebox
+import json
+import subprocess
+import struct
 
-root = tk.Tk()
-root.withdraw()
+def build_tree(path):
+    files = []
+    dirs = []
+    for name in sorted(os.listdir(path)):
+        full = os.path.join(path, name)
+        if os.path.isdir(full):
+            dirs.append(name)
+        else:
+            files.append(name)
+    items = []
+    items.extend(files)
+    for d in dirs:
+        items.append({d: build_tree(os.path.join(path, d))})
+    return items
+
+def dir2jsonfile(path, json_file):
+    tree = build_tree(path)
+    with open(json_file, "w", encoding="utf-8") as jf:
+        json.dump(tree, jf, indent=4)
 
 """"
 typedef struct FileHeader {
-    uint32_t is_folder;
-    uint32_t size;
+    uint8_t is_folder;
+    uint32_t size; // including the file end header
     uint32_t padding_from_original_size;
     uint16_t file_name_length; // this includes the full directory
     // there goes file name
     // and then goes the file info
-} FileHeader;
+} __attribute__((packed)) FileHeader;
+"""
+
+"""
+typedef struct FsHeader {
+    uint32_t signiture;
+} __attribute__((packed)) FsHeader;
 """
 
 def build_mono_fs():
+    dir2jsonfile('fs/', 'fs_structure.json')
+    subprocess.run(['mv', 'fs_structure.json', 'fs/fs_structure.json'])
+    
     with open("fs.bin", "w+b") as fs:
         fs.seek(0x00)
         fs.write("DEED".encode('ascii'))           # fs signiture
-        fs.write(b'\x00\x00\x00\x00')              # padding for fs start size in the future
         
         for root, dirs, files in os.walk('fs/'):
-            # print(f"{files=}, {dirs=}, {root.removeprefix('fs/') == ''}")
             for file in files:
-                fs.write(b'\x00') # not a dir
                 file_path = os.path.join(root, file)
-                file_size = len(file_path.removeprefix('fs/')) + 1 + 8 + len(open(file_path, "r").read()) + 11
-                # file size
-                fs.write(file_size.to_bytes(4, 'little'))
-                print(f"file size = {file_size}")
-                # padding 0 at the end of file
-                fs.write(int(0).to_bytes(4, 'little'))
-                # file name length
-                fs.write((len(file_path.removeprefix('fs/')) + 1).to_bytes(2, 'little')) 
-                print(f"filename length = {len(file_path.removeprefix('fs/')).to_bytes(2, 'little')}")
-                # file name
-                fs.write(f"{file_path.removeprefix('fs/')}\0".encode('ascii'))
-                # file content
-                with open(file_path, 'rb') as fl:
-                    fs.write(fl.read())
-                    
-                # file end header
-                fs.write(file_size.to_bytes(4, 'little'))
-                fs.write("DEED".encode('ascii'))
-                
-                print(f"sizeof file {file_path}: {file_size}")
+                file_content = open(file_path, "r").read().encode('ascii')
+                file_size = len(file_content) + 11 + len(file_path.removeprefix('fs/'))
+                #                               ^ file header size
+                byte_struct = struct.pack('<BLLH',
+                                            int(False),                                    # is_folder
+                                            file_size,                                     # file_size
+                                            int(0),                                        # padding at end of file
+                                            len(file_path.removeprefix('fs/')),            # fille name length
+                                          )
+                fs.write(byte_struct)
+                fs.write(file_path.removeprefix('fs/').encode('ascii'))
+                fs.write(file_content)
             
             for dr in dirs:
-                # is infact a folder
-                fs.write(b'\x01')
                 file_path = os.path.join(root, dr)
-                file_size = len(file_path.removeprefix('fs/')) + 1 + 8 + 11
-                # folder size maybe i will change it later to the size of the entire folder idk
-                fs.write(file_size.to_bytes(4, 'little')) 
-                print(f"folder size = {file_size}")
-                # padding at the end of the folder (not really needed since it is a folder)
-                fs.write(int(0).to_bytes(4, 'little'))
-                # folder name length
-                fs.write((len(file_path.removeprefix('fs/')) + 1).to_bytes(2, 'little'))
-                print(f"filename length = {len(file_path.removeprefix('fs/')).to_bytes(2, 'little')}")
-                # folder name
-                fs.write(f"{file_path.removeprefix('fs/')}\0".encode('ascii'))
+                file_size = 11 + len(file_path.removeprefix('fs/'))
+                #            ^ file header size
+                byte_struct = struct.pack('<BLLH',
+                                            int(True),                                     # is_folder
+                                            file_size,                                     # file_size
+                                            int(0),                                        # padding at end of file
+                                            len(file_path.removeprefix('fs/')),            # fille name length
+                                          )
+                fs.write(byte_struct)
+                fs.write(file_path.removeprefix('fs/').encode('ascii'))
                 
-                # file end header
-                fs.write(file_size.to_bytes(4, 'little'))
-                fs.write("DEED".encode('ascii'))
-                
-        fs.seek(0x04)
-        fs.write(os.path.getsize("fs.bin").to_bytes(4, 'little'))
         print(f"sizeof fs.bin: {os.path.getsize('fs.bin')}")
+        
 
 FS_START_ADDRESS = 64 * 512 * 3
 
@@ -102,7 +110,6 @@ if __name__ == "__main__":
         
         f.seek(int(os.path.getsize("boot.o")))
         f.write(f4.read())
-        messagebox.showinfo("Build Info", f"kernel final size before addition of fs: {os.path.getsize('boot.o')} bytes")
         
         f.seek(FS_START_ADDRESS)
         f.write(f5.read()) # write the filesystem image at the specified LBA

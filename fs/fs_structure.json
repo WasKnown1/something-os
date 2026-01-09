@@ -1,0 +1,9 @@
+[
+    "boot.cfg",
+    "fs_structure.json",
+    {
+        "testdir": [
+            "testdirfile.txt"
+        ]
+    }
+]
