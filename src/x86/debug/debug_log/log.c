@@ -1,6 +1,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <smthng_os.h>
 #ifdef QEMU_DEBUG
 #include <qemu_log.h>
 #define debug_log(str) qemu_log(str)

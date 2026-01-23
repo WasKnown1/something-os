@@ -47,11 +47,12 @@ def build_mono_fs():
     with open("fs.bin", "w+b") as fs:
         fs.seek(0x00)
         fs.write("DEED".encode('ascii'))           # fs signiture
+        fs.write(int(0).to_bytes(4, 'little'))
         
         for root, dirs, files in os.walk('fs/'):
             for file in files:
                 file_path = os.path.join(root, file)
-                file_content = open(file_path, "r").read().encode('ascii')
+                file_content = open(file_path, "rb").read()
                 file_size = len(file_content) + 11 + len(file_path.removeprefix('fs/'))
                 #                               ^ file header size
                 byte_struct = struct.pack('<BLLH',
@@ -76,8 +77,12 @@ def build_mono_fs():
                                           )
                 fs.write(byte_struct)
                 fs.write(file_path.removeprefix('fs/').encode('ascii'))
-                
-        print(f"sizeof fs.bin: {os.path.getsize('fs.bin')}")
+        
+        fs.flush()
+        fs.seek(4)
+        fs.write(int(os.path.getsize('fs.bin')).to_bytes(4, 'little'))
+        
+    print(f"sizeof fs.bin: {os.path.getsize('fs.bin')}")
         
 
 FS_START_ADDRESS = 64 * 512 * 3

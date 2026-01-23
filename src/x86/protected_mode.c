@@ -1,6 +1,5 @@
 #include <paging.h>
 #include <idt.h>
-#include <qemu_log.h>
 #include <log.h>
 #include <pae_mode.h>
 #include <long_mode.h>
@@ -9,10 +8,10 @@
 #include <compatibility_mode.h>
 #include <gdt64.h>
 #include <mono_fs.h>
-#include <stdio.h>
-#include <ata.h>
 #include <tss.h>
 #include <pio.h>
+#include <pe_loader/driver_loader/driver_loader.h>
+#include <isr/syscall.h>
 
 extern unsigned int __bss_start;
 extern unsigned int __bss_end;
@@ -27,6 +26,9 @@ void clear_bss(void) {
 }
 
 __attribute__((section(".entry"))) void entry(void)  {
+    // mask all irqs for slave/master irq pic
+    outb(0x21, 0xff);
+    outb(0xa1, 0xff);
     clear_bss(); // zero out bss if hasnt been already done yet
     init_paging();
 
@@ -68,9 +70,6 @@ __attribute__((section(".entry"))) void entry(void)  {
 
     __asm__("cli\n\t"); // disable interrupts before setting idt
     init_idt();
-    // mask all irqs for slave/master irq pic
-    outb(0x21, 0xff);
-    outb(0xa1, 0xff);
 
     void *ptr1 = malloc(10);
     *(int *)ptr1 = 42;
@@ -100,7 +99,9 @@ __attribute__((section(".entry"))) void entry(void)  {
     mono_fs_init();
     print_mono_fs();
 
-    __asm__("sti");
+    print_memory_allocations();
+    DriverLoadResult *driver = load_driver("dll/smthngdll.dll");
+    (void)driver;
 
     __asm__ (
         "cli\n\t"

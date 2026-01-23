@@ -33,6 +33,14 @@ typedef unsigned long long b64;
         type2 arg2;        \
     }
 
-u0 panic(void (*func)(const char *, ...), const char *msg, ...);
+#define panic(func, msg, ...)     \
+    do                            \
+    {                             \
+        func(msg, ##__VA_ARGS__); \
+        __asm__("cli\t\n"         \
+                "hlt\t\n");       \
+        while (true)              \
+            __asm__("hlt");       \
+    } while (true);
 
 #endif // SMTHNG_OS_H

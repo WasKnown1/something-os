@@ -1,3 +1,4 @@
+extern common_interrupt_handler
 %macro isr_err_stub 1
 isr_stub_%+%1:
     push    dword %1
@@ -6,19 +7,12 @@ isr_stub_%+%1:
 
 %macro isr_no_err_stub 1
 isr_stub_%+%1:
+    push    dword 0   
     push    dword %1                    
     jmp     common_interrupt_handler
 %endmacro
 
-extern log_num
 interrupt_handler:
-    ; mov eax, dword [esp + 52] ; esp + 52 is the interrupt number
-    ; add eax, 'a'
-    ; out 0xE9, al              ; log the interrupt number to port 0xE9 for debugging
-
-    cli
-    hlt 
-    jmp $
     ret
 
 common_interrupt_handler:
@@ -42,7 +36,33 @@ common_interrupt_handler:
     pop ds
     popa
     
-    add esp, 8
+    add esp, 8      ; clean up error code and vector
+    iret
+
+extern syscall_handler
+global isr_stub_0x80
+isr_stub_0x80:
+    pusha
+    push ds
+    push es
+    push fs
+    push gs
+    
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    
+    mov eax, [esp + 44]
+    call syscall_handler
+    
+    pop gs
+    pop fs
+    pop es
+    pop ds
+    popa
+    
     iret
 
 isr_no_err_stub 0
@@ -85,4 +105,3 @@ isr_stub_table:
     dd isr_stub_%+i
 %assign i i+1 
 %endrep
-

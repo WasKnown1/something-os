@@ -15,10 +15,12 @@
 #define LBA_SIZE 512
 
 typedef Pair(u16, u32) DiskAddress;
+typedef Pair(u8 *, u32) FileContent;
 // #define ERROR_DISK_ADDRESS (DiskAddress){.arg1 = 0, .arg2 = 0};
 
 typedef struct FsHeader {
     uint32_t signiture;
+    u32 size;
 } __attribute__((packed)) FsHeader;
 
 typedef struct FileHeader {
@@ -30,6 +32,9 @@ typedef struct FileHeader {
     // and then goes the file info
 } __attribute__((packed)) FileHeader;
 
+DiskAddress *dumb_file_search(const i8 *file_name);
+FileContent *get_file_content(const i8 *file_name);
+u0 free_file_content(FileContent *file_content);
 u0 print_mono_fs(u0);
 u0 mono_fs_init(u0);
 FILE *get_file(const char *filename);

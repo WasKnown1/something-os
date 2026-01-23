@@ -2,6 +2,16 @@
     "boot.cfg",
     "fs_structure.json",
     {
+        "dll": [
+            "smthngdll.dll"
+        ]
+    },
+    {
+        "drivers": [
+            "testdriver.kdr"
+        ]
+    },
+    {
         "testdir": [
             "testdirfile.txt"
         ]

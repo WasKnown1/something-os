@@ -9,7 +9,7 @@ static idtr_t idtr;
 void idt_set_descriptor(uint8_t vector, void *isr, uint8_t flags) {
     IDTEntry_t *descriptor = &idt[vector];
 
-    descriptor->base_lo = (uint32_t)isr & 0xFFFF;
+    descriptor->base_lo = (uint32_t)isr & 0xffff;
     descriptor->sel = 0x08;
     descriptor->always0 = 0;
     descriptor->flags = flags; 
@@ -18,6 +18,7 @@ void idt_set_descriptor(uint8_t vector, void *isr, uint8_t flags) {
 
 static bool vectors[IDT_MAX_DESCRIPTORS];
 extern void *isr_stub_table[];
+extern char isr_stub_0x80;
 
 void init_idt() {
     idtr.limit = (sizeof(IDTEntry_t) * IDT_MAX_DESCRIPTORS) - 1;
@@ -29,6 +30,8 @@ void init_idt() {
         idt_set_descriptor(vector, isr_stub_table[vector], 0x8e);
         vectors[vector] = true;
     }
+
+    idt_set_descriptor(0x80, &isr_stub_0x80, 0x8e);
 
     __asm__("lidt %0" : : "m"(idtr));
     __asm__("sti");
