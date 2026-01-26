@@ -12,6 +12,7 @@
 #include <pio.h>
 #include <pe_loader/driver_loader/driver_loader.h>
 #include <isr/syscall.h>
+#include <dll_loader.h>
 
 extern unsigned int __bss_start;
 extern unsigned int __bss_end;
@@ -100,8 +101,9 @@ __attribute__((section(".entry"))) void entry(void)  {
     print_mono_fs();
 
     print_memory_allocations();
-    DriverLoadResult *driver = load_driver("dll/smthngdll.dll");
+    DriverLoadResult *driver = load_driver("drivers/testdriver.kdr");
     (void)driver;
+    // parse_dll("dll/smthngdll.dll");
 
     __asm__ (
         "cli\n\t"

@@ -6,6 +6,7 @@
 #include <qemu_log.h>
 #include <paging.h>
 #include <string.h>
+#include <dll_loader.h>
 
 DriverLoadResult *load_driver(const i8 *driver_path) {
     FileContent *file_content = get_file_content(driver_path);
@@ -36,21 +37,30 @@ DriverLoadResult *load_driver(const i8 *driver_path) {
     debug_printf("offset to symbol table = %u\n", pe_header3->ptr_symbol_table);
     // hexdump((u8 *)pe_header2 + pe_header3->ptr_symbol_table, 240);
 
-    PEHeaderDataDir *data_directory = &pe_header2->optional_header.data_directory[PE_HEADER2_OPTIONAL_HEADER_ENTRY_EXPORT];
-    if (data_directory->virtual_address == 0)
-        panic(debug_printf, "no exports");
+    PEHeaderDataDirectory *data_directory = &pe_header2->optional_header.data_directory[PE_HEADER2_OPTIONAL_HEADER_ENTRY_IMPORT];
 
-    PEHeaderExportDir *export_directory = rva_to_pointer(data_directory->virtual_address, pe_header2, image_base);
-    u32 *name_rvas = rva_to_pointer(export_directory->addressof_names, pe_header2, image_base);
-    u16 *ordinals  = rva_to_pointer(export_directory->addressof_name_ordinals, pe_header2, image_base);
-    u32 *funcion_rvas = rva_to_pointer(export_directory->addressof_functions, pe_header2, image_base);
+    debug_printf("import directory va = %u size = %u\n",
+        data_directory->virtual_address,
+        data_directory->size
+    );
+    if (data_directory->virtual_address == 0 || data_directory->size == 0)
+        debug_printf("no imports\n");
 
-    for (u32 i = 0; i < export_directory->numberof_names; i++) {
-        i8 *name = rva_to_pointer(name_rvas[i], pe_header2, image_base);
-        u16 ordinal = ordinals[i];
-        u0 *function_ptr = rva_to_pointer(funcion_rvas[ordinal], pe_header2, image_base);
+    PEHeaderImportDirectory *import_directory = rva_to_pointer(
+        data_directory->virtual_address,
+        pe_header2,
+        image_base
+    );
 
-        debug_printf("export: %s @ %p\n", name, function_ptr);
+    debug_printf("import_directory ptr = %p\n", import_directory);
+    debug_printf("first import directory name rva = %u\n", import_directory->name);
+    if (import_directory == NULL || import_directory->name == 0)
+        debug_printf("import directory is empty\n");
+
+    for (; import_directory->name != 0; import_directory++) {
+        i8 *dll_name = rva_to_pointer(import_directory->name, pe_header2, image_base);
+        // parse_dll(dll_name);
+        debug_printf("imported dll name: %s\n", dll_name);
     }
 
     free_file_content(file_content);

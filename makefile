@@ -1,13 +1,15 @@
-NASM      = nasm -g -f bin
+NASM         = nasm -g -f bin
 # AS = as --32 -march i386
-CC32       = gcc -ggdb -c -m32 -Wall -Werror -nostdlib -ffreestanding -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -D QEMU_DEBUG
-CC64       = gcc -c -m64 -Wall -Werror -nostdlib -ffreestanding -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -D QEMU_DEBUG
-MINGWCC32  = x86_64-w64-mingw32-gcc -c -m32 -Wall -Werror -nostdlib -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -Wl,--gc-sections
-LD32       = ld -m elf_i386
-LD64       = ld -m elf_x86_64 
-MINGWLD32  = x86_64-w64-mingw32-gcc -m32 -Wall -Werror -nostdlib -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -Wl,--gc-sections -T /usr/i686-w64-mingw32/lib/ldscripts/i386pe.x
-OBJ_RAW    = objcopy --set-section-flags .bss=alloc,load,contents --set-section-flags .data=alloc,load,contents -O binary
-MINGWDLL32 = $(MINGWLD32) -shared
+CC32         = gcc -ggdb -c -m32 -Wall -Werror -nostdlib -ffreestanding -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -D QEMU_DEBUG
+CC64         = gcc -c -m64 -Wall -Werror -nostdlib -ffreestanding -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -D QEMU_DEBUG
+MINGWCC32    = x86_64-w64-mingw32-gcc -c -m32 -Wall -Werror -nostdlib -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -Wl,--gc-sections
+LD32         = ld -m elf_i386
+LD64         = ld -m elf_x86_64 
+MINGWLD32    = x86_64-w64-mingw32-gcc -m32 -Wall -Werror -nostdlib -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -Wl,--gc-sections -T /usr/i686-w64-mingw32/lib/ldscripts/i386pe.x
+OBJ_RAW      = objcopy --set-section-flags .bss=alloc,load,contents --set-section-flags .data=alloc,load,contents -O binary
+# MINGWDLL32   = $(MINGWLD32) -shared
+MINGW32FLAGS = -Lfs/dll/ -lsmthngdll
+MINGW32LDDLL = $(MINGWLD32) -shared
 
 X86_C_SRC    = $(shell find "src/x86/" -type f -name "*.c" ! -name "protected_mode.c")  $(shell find "src/cstd/" -type f -name "*.c") $(shell find "src/x86_64/" -type f -name "*.c")
 X64_C_SRC    = $(shell find "src/x64/" -type f -name "*.c" ! -name "long_mode_entry.c")
@@ -19,9 +21,11 @@ X86_C_INC    = $(addprefix -I,$(X86_C_DIR))
 DRIVER_C_SRC = $(shell find "src/drivers/" -type f -name "*.c" ! -name "driver_lib.c")
 DRIVER_C_DIR = $(shell find "src/drivers" -type d)
 DRIVER_C_INC = $(addprefix -I,$(DRIVER_C_DIR))
-DLLS_C_SRC   = $(shell find "src/dlls/" -type f -name "*.c")
+DLLS_C_SRC   = $(shell find "src/dlls/" -type f -name "*.c" ! -name "dll_lib.c")
 DLLS_C_DIR   = $(shell find "src/dlls/" -type d)
 DLLS_C_INC   = $(addprefix -I,$(DLLS_C_DIR))
+
+build_only: boot stage2 long_mode python_build
 
 all: boot stage2 long_mode python_build
 	qemu-system-x86_64 -m 2G -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o
@@ -75,19 +79,23 @@ drivers:
 		basename=$$(basename $$file .c); \
 		echo "Compiling $$file -> $$basename.kdr"; \
 		$(MINGWCC32) $$file -o $$basename.o $(DRIVER_C_INC) $(X86_C_INC) || exit 1; \
-		$(MINGWLD32) $$basename.o src/drivers/driver_lib.o -o $$basename.kdr; \
+		$(MINGWLD32) $(MINGW32FLAGS) $$basename.o src/drivers/driver_lib.o -o $$basename.kdr; \
 		mv $$basename.kdr fs/drivers/; \
 		rm $$basename.o; \
 	done
 	rm src/drivers/driver_lib.o
 
 dlls:
+	$(MINGWCC32) src/dlls/dll_lib.c -o src/dlls/dll_lib.o $(DLLS_C_INC) $(X86_C_INC)
 	@for file in $(DLLS_C_SRC); do \
 		basename=$$(basename $$file .c); \
 		echo "Compiling $$file -> $$basename.kdr"; \
-		$(MINGWDLL32) $$file -o $$basename.dll $(DRIVER_C_INC) $(X86_C_INC) $(DLLS_C_INC) || exit 1; \
+		$(MINGWCC32) $$file -o $$basename.o $(DRIVER_C_INC) $(X86_C_INC) $(DLLS_C_INC) || exit 1; \
+		$(MINGW32LDDLL) $$basename.o src/dlls/dll_lib.o -o $$basename.dll; \
+		rm $$basename.o; \
 		mv $$basename.dll fs/dll/; \
 	done
+	rm src/dlls/dll_lib.o
 
 run:
 	qemu-system-x86_64 -m 2G -debugcon stdio -no-shutdown -no-reboot -d int -drive format=raw,file=boot.o

@@ -4,10 +4,6 @@
 #include <smthng_os.h>
 #include <stdint.h>
 
-#define PE_HEADER2_OPTIONAL_HEADER_ENTRY_EXPORT 0
-#define PE_HEADER_SIZEOF_SHORT_NAME 8
-#define OFFSET_OF_FIELD(type, field) ((u32) __builtin_offsetof(type, field))
-
 typedef Result(void*, i8) DriverLoadResult;
 
 typedef struct {
@@ -45,7 +41,7 @@ typedef struct {
 typedef struct {
     u32 virtual_address;
     u32 size;
-} __attribute__((packed)) PEHeaderDataDir;
+} __attribute__((packed)) PEHeaderDataDirectory;
 
 #define DIRECTORY_ENTRIES_COUNT 16
 
@@ -81,7 +77,7 @@ typedef struct {
     u32 sizeof_heap_commit;
     u32 loader_flags;
     u32 rva_and_sizes_count;
-    PEHeaderDataDir data_directory[DIRECTORY_ENTRIES_COUNT];
+    PEHeaderDataDirectory data_directory[DIRECTORY_ENTRIES_COUNT];
 } __attribute__((packed)) PEOptionalHeader32;
 
 // this is not used right now...
@@ -117,7 +113,7 @@ typedef struct {
     u64 sizeof_heap_commit;
     u32 loader_flags;
     u32 rva_and_sizes_count;
-    PEHeaderDataDir data_directory[DIRECTORY_ENTRIES_COUNT];
+    PEHeaderDataDirectory data_directory[DIRECTORY_ENTRIES_COUNT];
 } __attribute__((packed)) PEOptionalHeader64;
 
 typedef struct {
@@ -154,7 +150,20 @@ typedef struct {
     u32 addressof_functions;
     u32 addressof_names;
     u32 addressof_name_ordinals;
-} __attribute__((packed)) PEHeaderExportDir;
+} __attribute__((packed)) PEHeaderExportDirectory;
+
+typedef struct {
+    union {
+        u32 characteristics;
+        u32 original_first_thunk;
+    } dummy_union_name;
+    u32 time_date_stamp;
+    u32 forwarder_chain;
+    u32 name;
+    u32 first_thunk;
+} __attribute__((packed)) PEHeaderImportDirectory;
+
+
 
 #define SECTION1(n) ((PEHeaderSectionHeader *)((uintptr_t)n + OFFSET_OF_FIELD(PEHeader2, optional_header) + ((PEHeader2 *)(n))->file_header.sizeof_optional_header))
 

@@ -1,0 +1,1 @@
+__attribute__((__stdcall__)) void _DllMainCRTStartup(void) {}

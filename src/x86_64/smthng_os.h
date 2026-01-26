@@ -2,6 +2,7 @@
 #define SMTHNG_OS_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef float f32;
 typedef double f64;
@@ -20,6 +21,8 @@ typedef unsigned char b8;
 typedef unsigned short b16;
 typedef unsigned int b32;
 typedef unsigned long long b64;
+
+typedef uintptr_t uptr;
 
 #define Result(res_type, stts_type) struct { \
     stts_type status; \
@@ -42,5 +45,12 @@ typedef unsigned long long b64;
         while (true)              \
             __asm__("hlt");       \
     } while (true);
+
+#define PE_HEADER2_OPTIONAL_HEADER_ENTRY_EXPORT 0
+#define PE_HEADER2_OPTIONAL_HEADER_ENTRY_IMPORT 1
+#define PE_HEADER_SIZEOF_SHORT_NAME 8
+#define OFFSET_OF_FIELD(type, field) ((u32) __builtin_offsetof(type, field))
+
+b8 compare_ending(const i8 *string, const i8 *ending);
 
 #endif // SMTHNG_OS_H
