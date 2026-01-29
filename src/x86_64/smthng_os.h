@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 
 typedef float f32;
 typedef double f64;
@@ -23,6 +24,23 @@ typedef unsigned int b32;
 typedef unsigned long long b64;
 
 typedef uintptr_t uptr;
+
+typedef struct Node {
+    u0 *data;
+    struct Node *next;
+} Node;
+
+static inline b8 node_has_next(Node *node_ptr) {
+    return node_ptr->next != NULL;
+}
+
+static inline Node *get_last_node(Node *head) {
+    Node *current = head;
+    while (current->next != NULL) {
+        current = current->next;
+    }
+    return current;
+}
 
 #define Result(res_type, stts_type) struct { \
     stts_type status; \
@@ -46,10 +64,14 @@ typedef uintptr_t uptr;
             __asm__("hlt");       \
     } while (true);
 
+#define cli() __asm__("cli")
+#define sti() __asm__("sti")
+
 #define PE_HEADER2_OPTIONAL_HEADER_ENTRY_EXPORT 0
 #define PE_HEADER2_OPTIONAL_HEADER_ENTRY_IMPORT 1
 #define PE_HEADER_SIZEOF_SHORT_NAME 8
 #define OFFSET_OF_FIELD(type, field) ((u32) __builtin_offsetof(type, field))
+#define PEHEADER_ORDINAL_FLAG32 0x80000000
 
 b8 compare_ending(const i8 *string, const i8 *ending);
 

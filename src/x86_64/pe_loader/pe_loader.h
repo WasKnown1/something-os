@@ -161,9 +161,30 @@ typedef struct {
     u32 forwarder_chain;
     u32 name;
     u32 first_thunk;
-} __attribute__((packed)) PEHeaderImportDirectory;
+} __attribute__((packed)) PEHeaderImportDescriptor;
 
+typedef struct  {
+    union {
+        u64 forwarder_string;
+        u64 function;
+        u64 ordinal;
+        u64 addressof_data;
+    } u1;
+} __attribute__((packed)) PEHeaderThunkData64;
 
+typedef struct  {
+    union {
+        u32 forwarder_string;
+        u32 function;
+        u32 ordinal;
+        u32 addressof_data;
+    } u1;
+} __attribute__((packed)) PEHeaderThunkData32;
+
+typedef struct {
+    u16 hint;
+    i8 name[1];
+} __attribute__((packed)) PEHeaderImportByName;
 
 #define SECTION1(n) ((PEHeaderSectionHeader *)((uintptr_t)n + OFFSET_OF_FIELD(PEHeader2, optional_header) + ((PEHeader2 *)(n))->file_header.sizeof_optional_header))
 

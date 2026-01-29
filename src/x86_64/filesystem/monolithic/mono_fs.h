@@ -7,8 +7,8 @@
 #include <smthng_os.h>
 
 #define MONO_FS_START_ADDRESS (64 * 512 * 3)
-/* the fs is appended right at the end of the disk image                                        *
- * then the fs is unziped (with the regular zip algorithm) to the end of the first entry of ram *
+/* the fs is appended right at the end of the disk image                                       
+ * then the fs is unziped (with the regular zip algorithm) to the end of the first entry of ram
  */
 
 #define MONO_FS_START_SIGNITURE 0x44454544 // encoded ascii dead, could be anything honestly
@@ -18,19 +18,32 @@ typedef Pair(u16, u32) DiskAddress;
 typedef Pair(u8 *, u32) FileContent;
 // #define ERROR_DISK_ADDRESS (DiskAddress){.arg1 = 0, .arg2 = 0};
 
-typedef struct FsHeader {
+typedef struct {
     uint32_t signiture;
     u32 size;
 } __attribute__((packed)) FsHeader;
 
-typedef struct FileHeader {
+typedef struct {
     uint8_t is_folder;
-    uint32_t size; // including the file end header
+    uint32_t size; // including the file
     uint32_t padding_from_original_size;
     uint16_t file_name_length; // this includes the full directory
     // there goes file name
     // and then goes the file info
 } __attribute__((packed)) FileHeader;
+
+/*
+ * the virtual file system only stores the 5 most resently used files in ram
+ * to avoid reading from disk all the time
+ * each file in ram is stored like this:
+ */
+typedef struct {
+    u32 times_accessed; // ignored for now but will be used for lru evicition
+    DiskAddress disk_address;
+    FileHeader *file_header;
+    i8 *file_name;
+    u8 *file_data;
+} __attribute__((packed)) VirtualFileHeader;
 
 DiskAddress *dumb_file_search(const i8 *file_name);
 FileContent *get_file_content(const i8 *file_name);

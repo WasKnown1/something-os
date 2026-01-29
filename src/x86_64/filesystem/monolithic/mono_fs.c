@@ -6,8 +6,9 @@
 #include <ata.h>
 
 static FsHeader fs_header = {.signiture = 0, .size = 0};
+static VirtualFileHeader virtual_file_list[5] = {0}; // 5 most recently used files
 
-static void fs_read_bytes(u32 offset, u0 *out, u32 size) {
+static void _fs_read_bytes(u32 offset, u0 *out, u32 size) {
     u8 sector[LBA_SIZE];
     u32 remaining = size;
     u8 *dst = out;
@@ -30,17 +31,63 @@ static void fs_read_bytes(u32 offset, u0 *out, u32 size) {
     }
 }
 
+static b8 _is_file_in_virtual_file_list(const i8 *file_name, u8 *out_index) {
+    for (u32 i = 0; i < 5; i++) {
+        if (virtual_file_list[i].file_header != NULL) {
+            if (strcmp(virtual_file_list[i].file_name, file_name) == 0) {
+                *out_index = i;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static u0 _add_file_to_virtual_file_list(DiskAddress disk_address, FileHeader *file_header, const i8 *file_name, u8 *file_data) {
+    // find the least recently used file
+    u32 lru_index = 0;
+    u32 lru_times_accessed = virtual_file_list[0].times_accessed;
+
+    for (u32 i = 1; i < 5; i++) {
+        if (virtual_file_list[i].times_accessed < lru_times_accessed || virtual_file_list[i].file_header == NULL) {
+            lru_times_accessed = virtual_file_list[i].times_accessed;
+            lru_index = i;
+        }
+    }
+
+    // free the lru file
+    if (virtual_file_list[lru_index].file_header != NULL) {
+        free(virtual_file_list[lru_index].file_header);
+        free(virtual_file_list[lru_index].file_name);
+        free(virtual_file_list[lru_index].file_data);
+    }
+
+    // add the new file
+    virtual_file_list[lru_index].disk_address = disk_address;
+    virtual_file_list[lru_index].file_header = file_header;
+    virtual_file_list[lru_index].file_name = (i8 *)file_name;
+    virtual_file_list[lru_index].file_data = file_data;
+    virtual_file_list[lru_index].times_accessed = 1;
+}
+
 DiskAddress *dumb_file_search(const i8 *file_name) {
+    u8 index;
+    if (_is_file_in_virtual_file_list(file_name, &index)) {
+        DiskAddress *addr = malloc(sizeof(DiskAddress));
+        memcpy(addr, &virtual_file_list[index].disk_address, sizeof(DiskAddress));
+        return addr;
+    }
+
     u32 fs_offset = sizeof(FsHeader);
 
     while (fs_offset < fs_header.size) {
         FileHeader file_header;
-        fs_read_bytes(fs_offset, &file_header, sizeof(FileHeader));
+        _fs_read_bytes(fs_offset, &file_header, sizeof(FileHeader));
 
         u16 name_len = file_header.file_name_length;
 
         i8 *name = malloc(name_len + 1);
-        fs_read_bytes(fs_offset + sizeof(FileHeader), name, name_len);
+        _fs_read_bytes(fs_offset + sizeof(FileHeader), name, name_len);
         name[name_len] = '\0';
 
         if (strcmp(name, file_name) == 0) {
@@ -49,6 +96,14 @@ DiskAddress *dumb_file_search(const i8 *file_name) {
             DiskAddress *addr = malloc(sizeof(DiskAddress));
             addr->arg1 = (MONO_FS_START_ADDRESS + fs_offset) / LBA_SIZE;
             addr->arg2 = (MONO_FS_START_ADDRESS + fs_offset) % LBA_SIZE;
+
+            _add_file_to_virtual_file_list(
+                *addr,
+                &file_header,
+                file_name,
+                (u8 *)(fs_offset + sizeof(FileHeader) + name_len)
+            );
+
             return addr;
         }
         free(name);

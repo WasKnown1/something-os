@@ -3,6 +3,8 @@ import json
 import subprocess
 import struct
 
+stop_after_build = False
+
 def build_tree(path):
     files = []
     dirs = []
@@ -115,6 +117,10 @@ if __name__ == "__main__":
         
         f.seek(int(os.path.getsize("boot.o")))
         f.write(f4.read())
+        
+        print("size of the final binary before fs:", os.path.getsize("boot.o"))
+        if stop_after_build:
+            exit(1)
         
         f.seek(FS_START_ADDRESS)
         f.write(f5.read()) # write the filesystem image at the specified LBA

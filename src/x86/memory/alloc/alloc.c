@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <paging.h>
 
+static Node *debug_messages = NULL;
+
 void alloc_init() {
     parse_e820_memory_map();
     get_ram_size();
@@ -139,6 +141,42 @@ void *aligned_alloc(size_t alignment, size_t size) {
     ((void**)aligned_addr)[-1] = raw_ptr; // store the original pointer
 
     return (void*)aligned_addr;
+}
+
+/*
+ * though this function looks scary and long it is actually quite simple
+ * it just keeps a linked list of debug messages for each allocation done with debug_alloc
+ */
+
+u0 *debug_alloc(u32 size, const i8 *debug_message) {
+    if (debug_messages == NULL) {
+        debug_messages = malloc(sizeof(Node));
+        u16 debug_message_length = strlen(debug_message);
+        i8 *debug_message_buffer = malloc(debug_message_length + 1);
+        memcpy(debug_message_buffer, debug_message, debug_message_length + 1);
+        debug_messages->data = debug_message_buffer;
+        debug_messages->next = NULL;
+    } else {
+        Node *last_debug_message_node = get_last_node(debug_messages);
+        Node *new_debug_message_node = malloc(sizeof(Node));
+        u16 debug_message_length = strlen(debug_message);
+        i8 *debug_message_buffer = malloc(debug_message_length + 1);
+        memcpy(debug_message_buffer, debug_message, debug_message_length + 1);
+        new_debug_message_node->data = debug_message_buffer;
+        new_debug_message_node->next = NULL;
+        last_debug_message_node->next = new_debug_message_node;
+    }
+    u0 *ptr = malloc(size);
+    return ptr;
+}
+
+u0 print_debug_alloc_messages(u0) {
+    Node *current = debug_messages;
+    while (current != NULL) {
+        debug_log((i8 *)current->data);
+        debug_log("\n");
+        current = current->next;
+    }
 }
 
 void print_memory_allocations(void) {
