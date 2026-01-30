@@ -96,7 +96,8 @@ DriverLoadResult *load_driver(const i8 *driver_path) {
             // } else debug_printf("resolved function for import by ordinal %u in dll %s at address %p\n", ordinal, dll_path_buffer, function_address);
 
             // free(dll_path_buffer);
-            panic(debug_printf, "[PANIC] import by ordinal not supported yet!\n");
+            // panic(debug_printf, "[PANIC] import by ordinal not supported yet!\n");
+            continue;
         } else {
             PEHeaderImportByName *import_by_name = rva_to_pointer(lookup->u1.addressof_data, pe_header2, image_base);
             debug_printf("import by name: %s\n", import_by_name->name);
@@ -125,11 +126,22 @@ DriverLoadResult *load_driver(const i8 *driver_path) {
 
             iat->u1.function = (u32)(uptr)function_address;
             free(dll_path_buffer);
-            free_dll_parser_info(dll_result);
         }
     }
-
     debug_printf("driver loaded at image base: %p\n", image_base);
+
+    debug_printf("driver entry point at rva: %u\n", pe_header2->optional_header.adr_entry_point);
+    uptr driver_entry_rva = (uptr)(pe_header2->optional_header.adr_entry_point);
+    u0 *driver_entry_point = rva_to_pointer((u32)driver_entry_rva, pe_header2, image_base);
+    debug_printf("driver entry point at address: %p\n", driver_entry_point);
+    u0 (*main)(u0) = (u0 (*)(u0))((u8 *)driver_entry_point);
+    main();
+    u32 driver_status = 0;
+    __asm__(
+        "mov %%eax, %0\n\t"
+        : "=r"(driver_status)
+    );
+    debug_printf("driver exited with status: %u\n", driver_status);
 
     free_file_content(file_content);
     return NULL;

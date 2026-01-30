@@ -17,6 +17,5 @@ typedef Result(DLLParserInfo *, i8) DLLParserResult;
 DLLParserResult *parse_dll(i8 *dll_name);
 u0 *resolve_dll_function_by_ordinal(DLLParserInfo *dll_result, u16 ordinal);
 u0 *resolve_dll_function_by_name(DLLParserInfo *dll_result, const i8 *function_name);
-u0 free_dll_parser_info(DLLParserResult *dll_parser_result);
 
 #endif // DLL_LOADER_H

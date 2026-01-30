@@ -6,6 +6,6 @@ int main(void) {
     //     "mov $150, %edx\n\t"
     //     "mov $0x2C, %eax\n\t"
     //     "int $0x2e");
-    kill_process((void *)-1, 150);
-    return 0;
+    // kill_process((void *)-1, 150);
+    return 0x67;
 }

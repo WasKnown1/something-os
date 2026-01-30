@@ -6,8 +6,6 @@
 #include <string.h>
 #include <alloc.h>
 
-// TODO: fix the DLLParserInfo struct and use the paramerters correctly like in the loop of parse_dll
-
 DLLParserResult *parse_dll(i8 *dll_name) {
     if (!compare_ending(dll_name, ".dll"))
         return &(DLLParserResult){.status = 1, .value = NULL};
@@ -42,8 +40,7 @@ DLLParserResult *parse_dll(i8 *dll_name) {
         debug_printf("export: %s @ %p\n", name, function_ptr);
     }
 
-    DLLParserInfo *dll_info = debug_alloc(sizeof(DLLParserInfo), "dll_loader: dll info");
-    dll_info = &(DLLParserInfo) {
+    DLLParserInfo *dll_info = &(DLLParserInfo) {
         .exported_function_rvas = funcion_rvas,
         .exported_name_rvas     = name_rvas,
         .exported_name_ordinals = ordinals,
@@ -74,8 +71,4 @@ u0 *resolve_dll_function_by_name(DLLParserInfo *dll, const i8 *function_name) {
         }
     }
     return NULL;
-}
-
-u0 free_dll_parser_info(DLLParserResult *dll_parser_result) {
-    free(dll_parser_result->value);
 }

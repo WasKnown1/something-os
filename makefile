@@ -2,14 +2,14 @@ NASM         = nasm -g -f bin
 # AS = as --32 -march i386
 CC32         = gcc -ggdb -c -m32 -Wall -Werror -nostdlib -ffreestanding -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -D QEMU_DEBUG
 CC64         = gcc -c -m64 -Wall -Werror -nostdlib -ffreestanding -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -D QEMU_DEBUG
-MINGWCC32    = x86_64-w64-mingw32-gcc -c -m32 -Wall -Werror -nostdlib -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -Wl,--gc-sections
+MINGWCC32    = x86_64-w64-mingw32-gcc -c -m32 -Wall -Werror -nostdlib -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -Wl,--export-all-symbols -Wl,--gc-sections
 LD32         = ld -m elf_i386
 LD64         = ld -m elf_x86_64 
 MINGWLD32    = x86_64-w64-mingw32-gcc -m32 -Wall -Werror -nostdlib -nodefaultlibs -mno-red-zone -fno-pic -fno-pie -Wl,--gc-sections -T /usr/i686-w64-mingw32/lib/ldscripts/i386pe.x
 OBJ_RAW      = objcopy --set-section-flags .bss=alloc,load,contents --set-section-flags .data=alloc,load,contents -O binary
 # MINGWDLL32   = $(MINGWLD32) -shared
-MINGW32FLAGS = -Lfs/dll/ -lsmthngdll
-MINGW32LDDLL = $(MINGWLD32) -shared
+MINGW32FLAGS = -Lfs/dll/ -lsmthngdll -Wl,--entry,_main -Wl,-e,_main
+MINGW32LDDLL = $(MINGWLD32) -shared 
 
 X86_C_SRC    = $(shell find "src/x86/" -type f -name "*.c" ! -name "protected_mode.c")  $(shell find "src/cstd/" -type f -name "*.c") $(shell find "src/x86_64/" -type f -name "*.c")
 X64_C_SRC    = $(shell find "src/x64/" -type f -name "*.c" ! -name "long_mode_entry.c")
@@ -19,7 +19,7 @@ X64_O_SRC    = $(notdir $(patsubst %.c,%.o,$(X64_C_SRC)))
 X86_C_DIR    = $(shell find "src" -type d)
 X86_C_INC    = $(addprefix -I,$(X86_C_DIR))
 DRIVER_C_SRC = $(shell find "src/drivers/" -type f -name "*.c" ! -name "driver_lib.c")
-DRIVER_C_DIR = $(shell find "src/drivers" -type d)
+DRIVER_C_DIR = $(shell find "src/drivers/" -type d)
 DRIVER_C_INC = $(addprefix -I,$(DRIVER_C_DIR))
 DLLS_C_SRC   = $(shell find "src/dlls/" -type f -name "*.c" ! -name "dll_lib.c")
 DLLS_C_DIR   = $(shell find "src/dlls/" -type d)
@@ -46,7 +46,6 @@ python_linker64:
 	python linker64.py
 
 protected_mode: python_linker86
-	echo $(X86_O_SRC)
 	$(CC32) -c src/x86/protected_mode.c -o protected_mode.o $(X86_C_INC)
 	@for file in $(X86_C_SRC); do \
 		basename=$$(basename $$file .c); \
@@ -78,7 +77,7 @@ drivers:
 	@for file in $(DRIVER_C_SRC); do \
 		basename=$$(basename $$file .c); \
 		echo "Compiling $$file -> $$basename.kdr"; \
-		$(MINGWCC32) $$file -o $$basename.o $(DRIVER_C_INC) $(X86_C_INC) || exit 1; \
+		$(MINGWCC32) $(MINGW32FLAGS) $$file -o $$basename.o $(DRIVER_C_INC) $(X86_C_INC) || exit 1; \
 		$(MINGWLD32) $(MINGW32FLAGS) $$basename.o src/drivers/driver_lib.o -o $$basename.kdr; \
 		mv $$basename.kdr fs/drivers/; \
 		rm $$basename.o; \
@@ -92,8 +91,8 @@ dlls:
 		echo "Compiling $$file -> $$basename.kdr"; \
 		$(MINGWCC32) $$file -o $$basename.o $(DRIVER_C_INC) $(X86_C_INC) $(DLLS_C_INC) || exit 1; \
 		$(MINGW32LDDLL) $$basename.o src/dlls/dll_lib.o -o $$basename.dll; \
-		rm $$basename.o; \
 		mv $$basename.dll fs/dll/; \
+		rm $$basename.o; \
 	done
 	rm src/dlls/dll_lib.o
 
